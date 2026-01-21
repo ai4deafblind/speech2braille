@@ -13,9 +13,8 @@ import { useSpeechToBrailleWebSocket } from '@/hooks/useSpeechToBrailleWebSocket
 
 type StatusType = 'idle' | 'listening' | 'processing' | 'success' | 'error'
 
-// Language options for faster-whisper
+// Language options for whisper.cpp (language is required - no auto-detect)
 const LANGUAGES = [
-  { code: null, name: 'Auto-detect' },
   { code: 'en', name: 'English' },
   { code: 'es', name: 'Spanish' },
   { code: 'fr', name: 'French' },
@@ -54,9 +53,10 @@ export function SpeechToBraille() {
   const [selectedTable, setSelectedTable] = useState(() => {
     return localStorage.getItem('speech2braille_table') || 'en-ueb-g2.ctb'
   })
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(() => {
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(() => {
     const saved = localStorage.getItem('speech2braille_language')
-    return saved === 'null' ? null : saved
+    // Default to 'en' if no saved value or if saved value was 'null' (auto-detect)
+    return saved && saved !== 'null' ? saved : 'en'
   })
   const [hapticsEnabled, setHapticsEnabled] = useState(() => {
     const saved = localStorage.getItem('speech2braille_haptics')
@@ -98,7 +98,7 @@ export function SpeechToBraille() {
   }, [selectedTable])
 
   useEffect(() => {
-    localStorage.setItem('speech2braille_language', selectedLanguage === null ? 'null' : selectedLanguage)
+    localStorage.setItem('speech2braille_language', selectedLanguage)
   }, [selectedLanguage])
 
   useEffect(() => {
@@ -496,8 +496,8 @@ export function SpeechToBraille() {
                 Speech Language
               </Label>
               <Select
-                value={selectedLanguage === null ? 'auto' : selectedLanguage}
-                onValueChange={(val) => setSelectedLanguage(val === 'auto' ? null : val)}
+                value={selectedLanguage}
+                onValueChange={setSelectedLanguage}
                 disabled={!isReady}
               >
                 <SelectTrigger id="language">
@@ -505,7 +505,7 @@ export function SpeechToBraille() {
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code || 'auto'} value={lang.code || 'auto'}>
+                    <SelectItem key={lang.code} value={lang.code}>
                       {lang.name}
                     </SelectItem>
                   ))}

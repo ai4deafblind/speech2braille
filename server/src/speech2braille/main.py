@@ -32,7 +32,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings = Settings()
 
     # Create services
-    asr_service = ASRService(settings.asr, settings.vad)
+    asr_service = ASRService(settings.asr)
     braille_service = BrailleService(settings.braille)
     table_service = TableService(settings.braille)
 
@@ -83,7 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.websocket("/ws/speech-to-braille")
     async def websocket_speech_to_braille(websocket: WebSocket):
-        """WebSocket for real-time speech-to-braille with faster-whisper VAD."""
+        """WebSocket for real-time speech-to-braille with whisper.cpp."""
         await ws_handler.handle(websocket)
 
     return app

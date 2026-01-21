@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+from dataclasses import dataclass, field
 
 import numpy as np
 import soundfile as sf
@@ -15,6 +16,43 @@ from speech2braille.services.asr_service import ASRService
 from speech2braille.services.braille_service import BrailleService
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class StreamingSession:
+    """Tracks state for a streaming speech-to-braille session."""
+
+    # Audio buffering
+    audio_buffer: list[np.ndarray] = field(default_factory=list)
+    buffer_duration: float = 0.0
+    is_recording: bool = False
+
+    # Context carryover for better continuity
+    last_transcription: str = ""  # Text from previous chunk for context prompt
+    accumulated_text: str = ""  # Full session transcript
+    accumulated_braille: str = ""  # Full session braille
+
+    # Session config
+    config: dict = field(default_factory=lambda: {
+        "language": "en",
+        "task": "transcribe",
+        "braille_table": "",
+        "word_timestamps": True,
+    })
+
+    def reset_buffer(self) -> None:
+        """Reset the audio buffer while preserving context."""
+        self.audio_buffer = []
+        self.buffer_duration = 0.0
+
+    def reset_session(self) -> None:
+        """Reset entire session state for new recording."""
+        self.audio_buffer = []
+        self.buffer_duration = 0.0
+        self.is_recording = False
+        self.last_transcription = ""
+        self.accumulated_text = ""
+        self.accumulated_braille = ""
 
 
 class SpeechToBrailleWebSocket:
@@ -47,58 +85,20 @@ class SpeechToBrailleWebSocket:
                 "device": self.asr_service.device,
             })
 
-            # Session state
-            audio_buffer: list[np.ndarray] = []
-            session_config = {
-                "language": None,
-                "task": "transcribe",
-                "braille_table": self.braille_service.default_table,
-                "word_timestamps": True,
-            }
-            is_recording = False
-            buffer_duration = 0.0
+            # Initialize session with StreamingSession dataclass
+            session = StreamingSession()
+            session.config["braille_table"] = self.braille_service.default_table
 
             while True:
                 data = await websocket.receive()
 
                 # Config/command messages
                 if "text" in data:
-                    await self._handle_text_message(
-                        websocket,
-                        data["text"],
-                        session_config,
-                        audio_buffer,
-                        buffer_duration,
-                        is_recording,
-                    )
-
-                    # Update local state based on message type
-                    try:
-                        message = json.loads(data["text"])
-                        if message.get("type") == "start_recording":
-                            audio_buffer = []
-                            buffer_duration = 0.0
-                            is_recording = True
-                        elif message.get("type") == "stop_recording":
-                            audio_buffer = []
-                            buffer_duration = 0.0
-                            is_recording = False
-                    except json.JSONDecodeError:
-                        pass
+                    await self._handle_text_message(websocket, data["text"], session)
 
                 # Audio chunks
                 elif "bytes" in data:
-                    result = await self._handle_audio_chunk(
-                        websocket,
-                        data["bytes"],
-                        session_config,
-                        audio_buffer,
-                        buffer_duration,
-                        is_recording,
-                    )
-                    audio_buffer = result["audio_buffer"]
-                    buffer_duration = result["buffer_duration"]
-                    is_recording = result["is_recording"]
+                    await self._handle_audio_chunk(websocket, data["bytes"], session)
 
         except WebSocketDisconnect:
             logger.info("WebSocket disconnected")
@@ -109,25 +109,47 @@ class SpeechToBrailleWebSocket:
         self,
         websocket: WebSocket,
         text: str,
-        session_config: dict,
-        audio_buffer: list,
-        buffer_duration: float,
-        is_recording: bool,
+        session: StreamingSession,
     ) -> None:
         """Handle a text message (config or command)."""
         try:
             message = json.loads(text)
 
             if message.get("type") == "config":
-                session_config.update(message.get("config", {}))
-                await websocket.send_json({"type": "config_updated", "config": session_config})
+                new_config = message.get("config", {})
+                # Validate language - it cannot be null or empty for whisper.cpp
+                if "language" in new_config and not new_config["language"]:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Language is required and cannot be null or empty",
+                    })
+                    return
+                session.config.update(new_config)
+                await websocket.send_json({"type": "config_updated", "config": session.config})
 
             elif message.get("type") == "start_recording":
+                # Reset session for new recording
+                session.reset_session()
+                session.is_recording = True
                 await websocket.send_json({"type": "recording_started"})
 
             elif message.get("type") == "stop_recording":
-                if audio_buffer and buffer_duration >= self.config.min_duration:
-                    await self._process_audio(websocket, audio_buffer, session_config)
+                # Process any remaining audio
+                if session.audio_buffer and session.buffer_duration >= self.config.min_duration:
+                    await self._process_audio(websocket, session)
+
+                # Send final accumulated result if we have content
+                if session.accumulated_text:
+                    await websocket.send_json({
+                        "type": "final_result",
+                        "transcribed_text": session.accumulated_text,
+                        "braille": session.accumulated_braille,
+                        "language": session.config.get("language"),
+                        "table_used": session.config.get("braille_table"),
+                        "success": True,
+                    })
+
+                session.reset_session()
                 await websocket.send_json({"type": "recording_stopped"})
 
         except json.JSONDecodeError as e:
@@ -139,61 +161,45 @@ class SpeechToBrailleWebSocket:
         self,
         websocket: WebSocket,
         audio_bytes: bytes,
-        session_config: dict,
-        audio_buffer: list,
-        buffer_duration: float,
-        is_recording: bool,
-    ) -> dict:
-        """Handle an audio chunk and return updated state."""
+        session: StreamingSession,
+    ) -> None:
+        """Handle an audio chunk."""
         try:
             audio_chunk = np.frombuffer(audio_bytes, dtype=np.float32)
             if len(audio_chunk) == 0:
-                return {
-                    "audio_buffer": audio_buffer,
-                    "buffer_duration": buffer_duration,
-                    "is_recording": is_recording,
-                }
+                return
 
-            audio_buffer.append(audio_chunk)
-            buffer_duration = sum(len(c) for c in audio_buffer) / self.config.sample_rate
+            session.audio_buffer.append(audio_chunk)
+            session.buffer_duration = sum(len(c) for c in session.audio_buffer) / self.config.sample_rate
 
-            if not is_recording:
-                is_recording = True
+            if not session.is_recording:
+                session.is_recording = True
                 await websocket.send_json({"type": "speech_started"})
 
             # Process every chunk_duration seconds for real-time output
-            if buffer_duration >= self.config.chunk_duration and buffer_duration >= self.config.min_duration:
-                await self._process_audio(websocket, audio_buffer, session_config)
-                audio_buffer = []
-                buffer_duration = 0.0
+            if session.buffer_duration >= self.config.chunk_duration and session.buffer_duration >= self.config.min_duration:
+                await self._process_audio(websocket, session)
+                session.reset_buffer()
 
             # Force process if buffer limit reached (safety fallback)
-            elif buffer_duration >= self.config.buffer_limit:
-                await self._process_audio(websocket, audio_buffer, session_config)
-                audio_buffer = []
-                buffer_duration = 0.0
+            elif session.buffer_duration >= self.config.buffer_limit:
+                await self._process_audio(websocket, session)
+                session.reset_buffer()
 
         except Exception as e:
             await websocket.send_json({"type": "error", "message": str(e)})
 
-        return {
-            "audio_buffer": audio_buffer,
-            "buffer_duration": buffer_duration,
-            "is_recording": is_recording,
-        }
-
     async def _process_audio(
         self,
         websocket: WebSocket,
-        audio_buffer: list,
-        session_config: dict,
+        session: StreamingSession,
     ) -> None:
-        """Process buffered audio and send results."""
-        if not audio_buffer:
+        """Process buffered audio and send results with context carryover."""
+        if not session.audio_buffer:
             return
 
         try:
-            audio_data = np.concatenate(audio_buffer)
+            audio_data = np.concatenate(session.audio_buffer)
             duration = len(audio_data) / self.config.sample_rate
 
             if duration < 0.3:
@@ -206,21 +212,46 @@ class SpeechToBrailleWebSocket:
             try:
                 await websocket.send_json({"type": "processing", "duration": duration})
 
-                result = await self.asr_service.transcribe(
+                # Use streaming transcribe with context carryover
+                initial_prompt = None
+                if self.config.use_context_carryover and session.last_transcription:
+                    initial_prompt = session.last_transcription
+
+                result = await self.asr_service.transcribe_streaming(
                     tmp_path,
-                    language=session_config.get("language"),
-                    task=session_config.get("task", "transcribe"),
-                    word_timestamps=session_config.get("word_timestamps", True),
+                    language=session.config["language"],
+                    initial_prompt=initial_prompt,
+                    task=session.config.get("task", "transcribe"),
                 )
 
-                braille_table = session_config.get("braille_table", self.braille_service.default_table)
+                # Skip empty results (likely no speech detected)
+                if not result["text"]:
+                    logger.debug("Empty transcription, skipping")
+                    return
+
+                # Update context for next chunk
+                if self.config.use_context_carryover:
+                    session.last_transcription = result.get("last_words", "")
+
+                # Accumulate full session transcript
+                if session.accumulated_text:
+                    session.accumulated_text += " " + result["text"]
+                else:
+                    session.accumulated_text = result["text"]
+
+                braille_table = session.config.get("braille_table", self.braille_service.default_table)
                 braille_text = self.braille_service.translate(result["text"], braille_table)
+
+                # Accumulate braille
+                if session.accumulated_braille:
+                    session.accumulated_braille += " " + braille_text
+                else:
+                    session.accumulated_braille = braille_text
 
                 # Debug logging
                 logger.info(f"Transcribed: {result['text'][:50]}")
-                logger.info(f"Braille (len={len(braille_text)}): {braille_text[:50]}")
                 if braille_text:
-                    logger.info(f"First char code: U+{ord(braille_text[0]):04X}")
+                    logger.info(f"Braille (len={len(braille_text)}): {braille_text[:50]}")
 
                 await websocket.send_json({
                     "type": "result",
@@ -229,7 +260,6 @@ class SpeechToBrailleWebSocket:
                     "language": result.get("language"),
                     "table_used": braille_table,
                     "audio_duration": result.get("duration"),
-                    "segments": result.get("segments"),
                     "success": True,
                 })
 

@@ -5,26 +5,27 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ASRConfig(BaseSettings):
-    """ASR (Automatic Speech Recognition) configuration."""
+    """ASR (Automatic Speech Recognition) configuration for whisper.cpp."""
 
     model_config = SettingsConfigDict(env_prefix="S2B_ASR_")
 
-    model_size: str = Field(default="tiny", description="Whisper model size (tiny, base, small, medium, large)")
-    device: str | None = Field(default=None, description="Device to use (cuda, cpu, or auto-detect)")
-    compute_type: str | None = Field(default=None, description="Compute type (int8, int8_float16, float16)")
-    download_root: str | None = Field(default=None, description="Directory to download models to")
-    local_files_only: bool = Field(default=False, description="Only use local model files")
+    model_name: str = Field(default="base", description="Whisper model name (tiny, base, small, medium, large-v3)")
+    model_path: str | None = Field(default=None, description="Optional path to local GGML model file")
+    n_threads: int = Field(default=4, description="Number of threads for inference")
+    default_language: str = Field(default="en", description="Default language for transcription (required)")
 
+    # Non-speech suppression
+    # Note: suppress_non_speech_tokens is not exposed in pywhispercpp C bindings (v1.4.1)
+    suppress_blank: bool = Field(default=True, description="Suppress blank outputs")
 
-class VADConfig(BaseSettings):
-    """Voice Activity Detection configuration."""
+    # Quality thresholds
+    entropy_thold: float = Field(default=2.4, description="Entropy threshold for quality filtering")
+    logprob_thold: float = Field(default=-1.0, description="Log probability threshold")
+    no_speech_thold: float = Field(default=0.6, description="No-speech probability threshold")
 
-    model_config = SettingsConfigDict(env_prefix="S2B_VAD_")
-
-    threshold: float = Field(default=0.5, description="VAD threshold (0-1)")
-    min_speech_duration_ms: int = Field(default=250, description="Minimum speech duration in ms")
-    min_silence_duration_ms: int = Field(default=500, description="Minimum silence duration in ms")
-    speech_pad_ms: int = Field(default=400, description="Speech padding in ms")
+    # Streaming optimization
+    temperature: float = Field(default=0.0, description="Sampling temperature (0 = greedy)")
+    split_on_word: bool = Field(default=True, description="Split on word boundaries rather than tokens")
 
 
 class WebSocketConfig(BaseSettings):
@@ -36,6 +37,10 @@ class WebSocketConfig(BaseSettings):
     chunk_duration: float = Field(default=3.0, description="Process audio every N seconds")
     buffer_limit: float = Field(default=30.0, description="Maximum buffer duration before force processing")
     min_duration: float = Field(default=0.5, description="Minimum audio duration to process")
+
+    # Context carryover for streaming
+    context_window_seconds: float = Field(default=1.0, description="Seconds of audio to overlap for context")
+    use_context_carryover: bool = Field(default=True, description="Use previous transcription as prompt for context")
 
 
 class BrailleConfig(BaseSettings):
@@ -76,7 +81,6 @@ class Settings(BaseSettings):
 
     # Nested configuration objects
     asr: ASRConfig = Field(default_factory=ASRConfig)
-    vad: VADConfig = Field(default_factory=VADConfig)
     websocket: WebSocketConfig = Field(default_factory=WebSocketConfig)
     braille: BrailleConfig = Field(default_factory=BrailleConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
@@ -84,7 +88,7 @@ class Settings(BaseSettings):
     # Application metadata
     app_title: str = Field(default="Brailler API", description="Application title")
     app_description: str = Field(
-        default="Offline-first speech-to-braille translation service with faster-whisper",
+        default="Offline-first speech-to-braille translation service with whisper.cpp",
         description="Application description",
     )
     app_version: str = Field(default="0.0.1", description="Application version")
