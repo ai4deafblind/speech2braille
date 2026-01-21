@@ -5,7 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 
 from speech2braille.models.transcription import SpeechToBrailleResponse, TranscriptionResponse
 from speech2braille.services.asr_service import ASRService
@@ -18,18 +18,17 @@ router = APIRouter(prefix="/api", tags=["speech"])
 async def transcribe_speech(
     request: Request,
     audio: UploadFile = File(..., description="Audio file (WAV, MP3, OGG, etc.)"),
-    language: str | None = None,
+    language: str = Query(..., description="Language code (e.g., 'en', 'es') - required"),
     task: str = "transcribe",
     word_timestamps: bool = False,
 ) -> TranscriptionResponse:
-    """Transcribe speech from an audio file using faster-whisper.
+    """Transcribe speech from an audio file using whisper.cpp.
 
     Accepts various audio formats and returns transcribed text.
-    The model auto-detects language if not specified.
 
     Args:
         audio: Audio file upload
-        language: Optional language code (e.g., 'en', 'es')
+        language: Language code (e.g., 'en', 'es') - required
         task: 'transcribe' (in original language) or 'translate' (to English)
         word_timestamps: Include word-level timestamps in response
     """
@@ -71,7 +70,7 @@ async def speech_to_braille(
     request: Request,
     audio: UploadFile = File(..., description="Audio file"),
     braille_table: str = "en-ueb-g2.ctb",
-    language: str | None = None,
+    language: str = Query(..., description="Language code (e.g., 'en', 'es') - required"),
     task: str = "transcribe",
     word_timestamps: bool = False,
 ) -> SpeechToBrailleResponse:
@@ -83,7 +82,7 @@ async def speech_to_braille(
     Args:
         audio: Audio file with speech
         braille_table: Braille table to use (default: English UEB Grade 2)
-        language: Optional speech language code
+        language: Language code (e.g., 'en', 'es') - required
         task: 'transcribe' or 'translate'
         word_timestamps: Include word-level timestamps in response
     """

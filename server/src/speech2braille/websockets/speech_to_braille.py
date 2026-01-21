@@ -50,7 +50,7 @@ class SpeechToBrailleWebSocket:
             # Session state
             audio_buffer: list[np.ndarray] = []
             session_config = {
-                "language": None,
+                "language": "en",  # Language is required for whisper.cpp
                 "task": "transcribe",
                 "braille_table": self.braille_service.default_table,
                 "word_timestamps": True,
@@ -119,7 +119,15 @@ class SpeechToBrailleWebSocket:
             message = json.loads(text)
 
             if message.get("type") == "config":
-                session_config.update(message.get("config", {}))
+                new_config = message.get("config", {})
+                # Validate language - it cannot be null or empty for whisper.cpp
+                if "language" in new_config and not new_config["language"]:
+                    await websocket.send_json({
+                        "type": "error",
+                        "message": "Language is required and cannot be null or empty",
+                    })
+                    return
+                session_config.update(new_config)
                 await websocket.send_json({"type": "config_updated", "config": session_config})
 
             elif message.get("type") == "start_recording":
@@ -208,7 +216,7 @@ class SpeechToBrailleWebSocket:
 
                 result = await self.asr_service.transcribe(
                     tmp_path,
-                    language=session_config.get("language"),
+                    language=session_config["language"],  # Required for whisper.cpp
                     task=session_config.get("task", "transcribe"),
                     word_timestamps=session_config.get("word_timestamps", True),
                 )

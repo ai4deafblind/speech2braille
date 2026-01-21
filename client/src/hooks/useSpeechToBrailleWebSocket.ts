@@ -37,7 +37,7 @@ export interface ReadyMessage {
 export interface ConfigUpdatedMessage {
   type: 'config_updated';
   config: {
-    language?: string | null;
+    language?: string;
     task?: string;
     braille_table?: string;
   };
@@ -86,7 +86,7 @@ export interface ResultMessage {
   type: 'result';
   transcribed_text: string;
   braille: string;
-  language?: string | null;
+  language?: string;
   table_used: string;
   audio_duration?: number;
   segments?: SegmentTimestamp[];
@@ -121,7 +121,7 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 're
  */
 export interface WebSocketConfig {
   braille_table?: string;
-  language?: string | null;
+  language?: string;
   task?: string;
 }
 

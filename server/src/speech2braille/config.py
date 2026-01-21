@@ -5,26 +5,14 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ASRConfig(BaseSettings):
-    """ASR (Automatic Speech Recognition) configuration."""
+    """ASR (Automatic Speech Recognition) configuration for whisper.cpp."""
 
     model_config = SettingsConfigDict(env_prefix="S2B_ASR_")
 
-    model_size: str = Field(default="tiny", description="Whisper model size (tiny, base, small, medium, large)")
-    device: str | None = Field(default=None, description="Device to use (cuda, cpu, or auto-detect)")
-    compute_type: str | None = Field(default=None, description="Compute type (int8, int8_float16, float16)")
-    download_root: str | None = Field(default=None, description="Directory to download models to")
-    local_files_only: bool = Field(default=False, description="Only use local model files")
-
-
-class VADConfig(BaseSettings):
-    """Voice Activity Detection configuration."""
-
-    model_config = SettingsConfigDict(env_prefix="S2B_VAD_")
-
-    threshold: float = Field(default=0.5, description="VAD threshold (0-1)")
-    min_speech_duration_ms: int = Field(default=250, description="Minimum speech duration in ms")
-    min_silence_duration_ms: int = Field(default=500, description="Minimum silence duration in ms")
-    speech_pad_ms: int = Field(default=400, description="Speech padding in ms")
+    model_name: str = Field(default="tiny", description="Whisper model name (tiny, base, small, medium, large-v3)")
+    model_path: str | None = Field(default=None, description="Optional path to local GGML model file")
+    n_threads: int = Field(default=4, description="Number of threads for inference")
+    default_language: str = Field(default="en", description="Default language for transcription (required)")
 
 
 class WebSocketConfig(BaseSettings):
@@ -76,7 +64,6 @@ class Settings(BaseSettings):
 
     # Nested configuration objects
     asr: ASRConfig = Field(default_factory=ASRConfig)
-    vad: VADConfig = Field(default_factory=VADConfig)
     websocket: WebSocketConfig = Field(default_factory=WebSocketConfig)
     braille: BrailleConfig = Field(default_factory=BrailleConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
@@ -84,7 +71,7 @@ class Settings(BaseSettings):
     # Application metadata
     app_title: str = Field(default="Brailler API", description="Application title")
     app_description: str = Field(
-        default="Offline-first speech-to-braille translation service with faster-whisper",
+        default="Offline-first speech-to-braille translation service with whisper.cpp",
         description="Application description",
     )
     app_version: str = Field(default="0.0.1", description="Application version")
