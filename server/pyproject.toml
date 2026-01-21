@@ -1,0 +1,59 @@
+[project]
+name = "speech2braille"
+version = "0.0.1"
+requires-python = ">=3.12, <3.14"
+dependencies = [
+    "fastapi[standard]>=0.128.0",
+    "faster-whisper>=1.2.1",
+    "uvicorn[standard]>=0.40.0",
+    "soundfile>=0.12.0",
+    "python-multipart>=0.0.6",
+    "huggingface-hub>=0.20.0",
+    "numpy>=1.24.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/speech2braille"]
+
+# Note: Run `uv venv --system-site-packages` to access system python3-louis package
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+src = ["src"]
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults (FastAPI depends on this)
+    "B904",   # raise-without-from-inside-except (not always appropriate)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["speech2braille"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
