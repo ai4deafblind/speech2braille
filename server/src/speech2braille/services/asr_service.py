@@ -10,12 +10,14 @@ from pywhispercpp.model import Model
 from speech2braille.config import ASRConfig
 
 # Pattern to match noise annotations like [INAUDIBLE], (music), (keyboard clicking), etc.
+# Also matches common whisper hallucination patterns
 NOISE_PATTERN = re.compile(
     r'\s*[\[\(]'  # Opening bracket with optional leading whitespace
     r'[^\]\)]*'   # Content inside brackets
     r'(?:inaudible|music|noise|silence|applause|laughter|cough|sneeze|'
     r'clicking|typing|background|sound|audio|static|buzzing|humming|'
-    r'crosstalk|unintelligible|indistinct|unclear)'
+    r'crosstalk|unintelligible|indistinct|unclear|'
+    r'blank|no\s*speech|foreign|subtitles|transcript)'  # Additional hallucination patterns
     r'[^\]\)]*'   # More content
     r'[\]\)]'     # Closing bracket
     r'\s*',       # Optional trailing whitespace
@@ -89,18 +91,24 @@ class ASRService:
         logger.info(f"Loading whisper.cpp model: {model_id}")
 
         try:
+            # Note: suppress_non_speech_tokens is in pywhispercpp PARAMS_SCHEMA but
+            # not exposed in the C bindings (v1.4.1). Only suppress_blank works here.
             model = Model(
                 model=model_id,
                 n_threads=self.asr_config.n_threads,
                 print_progress=False,
                 print_realtime=False,
+                suppress_blank=self.asr_config.suppress_blank,
             )
 
             self.state.model = model
             self.state.loaded = True
             self.state.loading = False
 
-            logger.info(f"whisper.cpp loaded: {model_id} with {self.asr_config.n_threads} threads")
+            logger.info(
+                f"whisper.cpp loaded: {model_id} with {self.asr_config.n_threads} threads, "
+                f"suppress_blank={self.asr_config.suppress_blank}"
+            )
 
         except Exception as e:
             logger.error(f"Failed to load model: {e!s}")
@@ -151,6 +159,13 @@ class ASRService:
             language=language,
             translate=translate,
             extract_probability=True,
+            # Quality thresholds
+            entropy_thold=self.asr_config.entropy_thold,
+            logprob_thold=self.asr_config.logprob_thold,
+            no_speech_thold=self.asr_config.no_speech_thold,
+            # Streaming optimization
+            temperature=self.asr_config.temperature,
+            split_on_word=self.asr_config.split_on_word,
         )
 
         # Process segments
@@ -197,6 +212,99 @@ class ASRService:
             "language": language,
             "duration": float(max_time),
             "segments": segment_list if word_timestamps else None,
+            "success": True,
+        }
+
+    async def transcribe_streaming(
+        self,
+        audio_path: str,
+        language: str,
+        initial_prompt: str | None = None,
+        task: str = "transcribe",
+    ) -> dict[str, Any]:
+        """Transcribe audio for streaming with context carryover support.
+
+        Args:
+            audio_path: Path to audio file
+            language: Language code (REQUIRED)
+            initial_prompt: Previous transcription text for context continuity
+            task: 'transcribe' or 'translate'
+
+        Returns:
+            Dict with text, language, duration, last_words (for next chunk's context), success
+        """
+        if not language:
+            raise ValueError("Language is required for transcription")
+
+        if not self.state.loaded:
+            if self.state.loading:
+                raise RuntimeError("ASR model is loading...")
+            elif self.state.error:
+                raise RuntimeError(f"ASR model failed: {self.state.error}")
+            else:
+                raise RuntimeError("ASR model not loaded")
+
+        logger.debug(f"Streaming transcribe: {audio_path} (prompt={initial_prompt[:30] if initial_prompt else None}...)")
+        model = self.state.model
+
+        # Build transcribe kwargs
+        translate = task == "translate"
+        transcribe_kwargs: dict[str, Any] = {
+            "language": language,
+            "translate": translate,
+            "extract_probability": True,
+            # Quality thresholds
+            "entropy_thold": self.asr_config.entropy_thold,
+            "logprob_thold": self.asr_config.logprob_thold,
+            "no_speech_thold": self.asr_config.no_speech_thold,
+            # Streaming optimization
+            "temperature": self.asr_config.temperature,
+            "split_on_word": self.asr_config.split_on_word,
+        }
+
+        # Add initial prompt for context carryover if provided
+        if initial_prompt:
+            # pywhispercpp uses prompt_tokens parameter
+            # We pass the text and let whisper.cpp tokenize it
+            transcribe_kwargs["initial_prompt"] = initial_prompt
+
+        segments = model.transcribe(audio_path, **transcribe_kwargs)
+
+        # Process segments
+        full_text = []
+        max_time = 0.0
+
+        for segment in segments:
+            # Filter out noise annotations
+            clean_text = NOISE_PATTERN.sub('', segment.text).strip()
+            if not clean_text:
+                continue
+            full_text.append(clean_text)
+
+            end_sec = float(segment.t1) / 100.0
+            max_time = max(max_time, end_sec)
+
+        transcription = " ".join(full_text).strip()
+
+        # Extract last few words for context carryover (limit to ~50 chars)
+        last_words = ""
+        if transcription:
+            words = transcription.split()
+            # Take last 5-10 words, or fewer if sentence is short
+            context_words = words[-10:] if len(words) > 10 else words
+            last_words = " ".join(context_words)
+            # Trim to max 50 chars from the end
+            if len(last_words) > 50:
+                last_words = last_words[-50:]
+
+        if transcription:
+            logger.info(f"Streaming transcribed: {transcription[:50]}...")
+
+        return {
+            "text": transcription,
+            "language": language,
+            "duration": float(max_time),
+            "last_words": last_words,  # For context carryover to next chunk
             "success": True,
         }
 
