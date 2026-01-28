@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import tempfile
+import time
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -14,6 +15,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from speech2braille.config import WebSocketConfig
 from speech2braille.services.asr_service import ASRService
 from speech2braille.services.braille_service import BrailleService
+from speech2braille.services.vad_service import VADService, VADResult, VADSessionState
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,11 @@ class StreamingSession:
         "word_timestamps": True,
     })
 
+    # VAD-specific state
+    vad_state: VADSessionState = field(default_factory=VADSessionState)
+    last_vad_probability: float = 0.0
+    consecutive_silence_frames: int = 0
+
     def reset_buffer(self) -> None:
         """Reset the audio buffer while preserving context."""
         self.audio_buffer = []
@@ -53,6 +60,10 @@ class StreamingSession:
         self.last_transcription = ""
         self.accumulated_text = ""
         self.accumulated_braille = ""
+        # Reset VAD state
+        self.vad_state = VADSessionState()
+        self.last_vad_probability = 0.0
+        self.consecutive_silence_frames = 0
 
 
 class SpeechToBrailleWebSocket:
@@ -62,10 +73,12 @@ class SpeechToBrailleWebSocket:
         self,
         asr_service: ASRService,
         braille_service: BrailleService,
+        vad_service: VADService,
         config: WebSocketConfig,
     ) -> None:
         self.asr_service = asr_service
         self.braille_service = braille_service
+        self.vad_service = vad_service
         self.config = config
 
     async def handle(self, websocket: WebSocket) -> None:
@@ -176,15 +189,29 @@ class SpeechToBrailleWebSocket:
                 session.is_recording = True
                 await websocket.send_json({"type": "speech_started"})
 
-            # Process every chunk_duration seconds for real-time output
-            if session.buffer_duration >= self.config.chunk_duration and session.buffer_duration >= self.config.min_duration:
-                await self._process_audio(websocket, session)
-                session.reset_buffer()
+            # Run VAD if enabled
+            if self.vad_service.is_loaded:
+                vad_result = self.vad_service.process_frame(audio_chunk)
+                session.last_vad_probability = vad_result.probability
 
-            # Force process if buffer limit reached (safety fallback)
-            elif session.buffer_duration >= self.config.buffer_limit:
-                await self._process_audio(websocket, session)
-                session.reset_buffer()
+                # Update VAD state
+                self._update_vad_state(session, vad_result)
+
+                # Check if we should trigger ASR
+                if self._should_process_audio(session, vad_result):
+                    await self._process_audio(websocket, session)
+                    session.reset_buffer()
+                    self.vad_service.reset_session()
+            else:
+                # Fallback to fixed-interval (existing logic)
+                if session.buffer_duration >= self.config.chunk_duration and session.buffer_duration >= self.config.min_duration:
+                    await self._process_audio(websocket, session)
+                    session.reset_buffer()
+
+                # Force process if buffer limit reached (safety fallback)
+                elif session.buffer_duration >= self.config.buffer_limit:
+                    await self._process_audio(websocket, session)
+                    session.reset_buffer()
 
         except Exception as e:
             await websocket.send_json({"type": "error", "message": str(e)})
@@ -269,3 +296,51 @@ class SpeechToBrailleWebSocket:
 
         except Exception as e:
             await websocket.send_json({"type": "error", "message": str(e)})
+
+    def _update_vad_state(self, session: StreamingSession, vad_result: VADResult) -> None:
+        """Update VAD state machine based on frame result."""
+        state = session.vad_state
+        frame_duration_ms = (self.vad_service.config.frame_size_samples / self.vad_service.config.sample_rate) * 1000
+
+        if vad_result.is_speech:
+            if not state.is_speech_active:
+                state.is_speech_active = True
+                state.speech_start_time = time.time()
+                session.consecutive_silence_frames = 0
+            else:
+                state.speech_duration += frame_duration_ms / 1000.0
+            if not hasattr(session, 'consecutive_speech_frames'):
+                session.consecutive_speech_frames = 0
+            session.consecutive_speech_frames = session.consecutive_speech_frames + 1
+            state.silence_duration = 0.0
+        else:
+            if state.is_speech_active:
+                if not hasattr(session, 'consecutive_silence_frames'):
+                    session.consecutive_silence_frames = 0
+                session.consecutive_silence_frames = session.consecutive_silence_frames + 1
+                state.silence_duration += frame_duration_ms / 1000.0
+
+                # Mark speech end if threshold met
+                if state.silence_duration >= self.vad_service.config.min_silence_duration_ms / 1000.0:
+                    vad_result.speech_end = True
+                    state.is_speech_active = False
+
+    def _should_process_audio(self, session: StreamingSession, vad_result: VADResult) -> bool:
+        """Determine if ASR should process accumulated audio."""
+        # Minimum duration check
+        if session.buffer_duration < self.config.min_duration:
+            return False
+
+        # Force process if buffer limit reached
+        if session.buffer_duration >= self.config.buffer_limit:
+            return True
+
+        # Check for speech end with sufficient silence
+        if vad_result.speech_end:
+            return True
+
+        # Force process if max speech duration exceeded
+        if session.vad_state.speech_duration >= self.vad_service.config.max_speech_duration_s:
+            return True
+
+        return False

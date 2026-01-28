@@ -59,6 +59,23 @@ class BrailleConfig(BaseSettings):
     )
 
 
+class VADConfig(BaseSettings):
+    """Voice Activity Detection configuration."""
+
+    model_config = SettingsConfigDict(env_prefix="S2B_VAD_")
+
+    enabled: bool = Field(default=True, description="Enable VAD")
+    library: str = Field(default="silero", description="VAD library: silero, webrtc")
+    threshold: float = Field(default=0.5, description="Speech probability threshold (0.0-1.0)")
+    min_speech_duration_ms: int = Field(default=250, description="Minimum speech duration (ms)")
+    min_silence_duration_ms: int = Field(default=800, description="Silence duration to mark speech end (ms)")
+    speech_pad_ms: int = Field(default=30, description="Padding before speech start (ms)")
+    max_speech_duration_s: float = Field(default=30.0, description="Force processing after this duration (s)")
+    sensitivity_preset: str = Field(default="balanced", description="Sensitivity: sensitive, balanced, conservative")
+    sample_rate: int = Field(default=16000, description="Audio sample rate")
+    frame_size_samples: int = Field(default=512, description="Frame size (16ms at 16kHz)")
+
+
 class CORSConfig(BaseSettings):
     """CORS configuration."""
 
@@ -83,6 +100,7 @@ class Settings(BaseSettings):
     asr: ASRConfig = Field(default_factory=ASRConfig)
     websocket: WebSocketConfig = Field(default_factory=WebSocketConfig)
     braille: BrailleConfig = Field(default_factory=BrailleConfig)
+    vad: VADConfig = Field(default_factory=VADConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
 
     # Application metadata

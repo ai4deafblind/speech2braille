@@ -40,6 +40,8 @@ const HapticPatterns = {
   error: [150, 50, 100, 50, 50],
   heartbeat: [300],
   speechStart: [80, 40, 80],
+  speechDetected: [60, 40, 60, 40],
+  processingNow: [30, 30, 30, 30, 30],
 } as const
 
 const triggerHaptic = (pattern: readonly number[]) => {

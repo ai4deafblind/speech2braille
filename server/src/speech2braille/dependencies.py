@@ -9,6 +9,7 @@ from speech2braille.config import Settings
 from speech2braille.services.asr_service import ASRService
 from speech2braille.services.braille_service import BrailleService
 from speech2braille.services.table_service import TableService
+from speech2braille.services.vad_service import VADService
 
 
 @lru_cache
@@ -25,7 +26,7 @@ def get_asr_service(settings: Annotated[Settings, Depends(get_settings)]) -> ASR
     """
     # This will be overridden in main.py to use app.state
     # For now, create a new instance (will be replaced at runtime)
-    return ASRService(settings.asr, settings.vad)
+    return ASRService(settings.asr)
 
 
 def get_braille_service(settings: Annotated[Settings, Depends(get_settings)]) -> BrailleService:
@@ -38,8 +39,14 @@ def get_table_service(settings: Annotated[Settings, Depends(get_settings)]) -> T
     return TableService(settings.braille)
 
 
+def get_vad_service(settings: Annotated[Settings, Depends(get_settings)]) -> VADService:
+    """Get the VAD service instance."""
+    return VADService(settings.vad)
+
+
 # Type aliases for use in route dependencies
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 ASRServiceDep = Annotated[ASRService, Depends(get_asr_service)]
 BrailleServiceDep = Annotated[BrailleService, Depends(get_braille_service)]
 TableServiceDep = Annotated[TableService, Depends(get_table_service)]
+VADServiceDep = Annotated[VADService, Depends(get_vad_service)]

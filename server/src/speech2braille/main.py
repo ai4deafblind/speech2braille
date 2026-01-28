@@ -12,6 +12,7 @@ from speech2braille.routers import health_router, speech_router, tables_router, 
 from speech2braille.services.asr_service import ASRService
 from speech2braille.services.braille_service import BrailleService
 from speech2braille.services.table_service import TableService
+from speech2braille.services.vad_service import VADService
 from speech2braille.websockets import SpeechToBrailleWebSocket
 
 # Configure logging
@@ -35,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     asr_service = ASRService(settings.asr)
     braille_service = BrailleService(settings.braille)
     table_service = TableService(settings.braille)
+    vad_service = VADService(settings.vad)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -45,10 +47,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.asr_service = asr_service
         app.state.braille_service = braille_service
         app.state.table_service = table_service
+        app.state.vad_service = vad_service
         app.state.settings = settings
 
-        # Start ASR model loading in background
+        # Start ASR and VAD model loading in background
         asyncio.create_task(asr_service.load_model())
+        asyncio.create_task(vad_service.load_model())
 
         yield
 
@@ -79,7 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(speech_router)
 
     # WebSocket endpoint
-    ws_handler = SpeechToBrailleWebSocket(asr_service, braille_service, settings.websocket)
+    ws_handler = SpeechToBrailleWebSocket(asr_service, braille_service, vad_service, settings.websocket)
 
     @app.websocket("/ws/speech-to-braille")
     async def websocket_speech_to_braille(websocket: WebSocket):

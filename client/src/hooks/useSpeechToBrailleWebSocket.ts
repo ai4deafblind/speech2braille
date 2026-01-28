@@ -10,6 +10,7 @@ export type ServerMessageType =
   | 'recording_stopped'
   | 'speech_started'
   | 'speech_ended'
+  | 'vad_status'
   | 'status'
   | 'processing'
   | 'result'
@@ -51,6 +52,18 @@ export interface SpeechStartedMessage {
 export interface SpeechEndedMessage {
   type: 'speech_ended';
   message: string;
+}
+
+export interface VADStatusMessage {
+  type: 'vad_status';
+  enabled: boolean;
+  is_speech_active: boolean;
+  probability: number;
+}
+
+export interface SpeechEndedMessageVAD {
+  type: 'speech_ended';
+  duration: number;
 }
 
 export interface StatusMessage {
@@ -106,6 +119,7 @@ export type ServerMessage =
   | RecordingStoppedMessage
   | SpeechStartedMessage
   | SpeechEndedMessage
+  | VADStatusMessage
   | StatusMessage
   | ProcessingMessage
   | ResultMessage
