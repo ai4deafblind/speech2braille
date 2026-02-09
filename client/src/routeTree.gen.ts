@@ -10,11 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SpeechRouteImport } from './routes/speech'
+import { Route as BrailleToSpeechRouteImport } from './routes/braille-to-speech'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SpeechRoute = SpeechRouteImport.update({
   id: '/speech',
   path: '/speech',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrailleToSpeechRoute = BrailleToSpeechRouteImport.update({
+  id: '/braille-to-speech',
+  path: '/braille-to-speech',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -25,27 +31,31 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/braille-to-speech': typeof BrailleToSpeechRoute
   '/speech': typeof SpeechRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/braille-to-speech': typeof BrailleToSpeechRoute
   '/speech': typeof SpeechRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/braille-to-speech': typeof BrailleToSpeechRoute
   '/speech': typeof SpeechRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/speech'
+  fullPaths: '/' | '/braille-to-speech' | '/speech'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/speech'
-  id: '__root__' | '/' | '/speech'
+  to: '/' | '/braille-to-speech' | '/speech'
+  id: '__root__' | '/' | '/braille-to-speech' | '/speech'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BrailleToSpeechRoute: typeof BrailleToSpeechRoute
   SpeechRoute: typeof SpeechRoute
 }
 
@@ -56,6 +66,13 @@ declare module '@tanstack/react-router' {
       path: '/speech'
       fullPath: '/speech'
       preLoaderRoute: typeof SpeechRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/braille-to-speech': {
+      id: '/braille-to-speech'
+      path: '/braille-to-speech'
+      fullPath: '/braille-to-speech'
+      preLoaderRoute: typeof BrailleToSpeechRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -70,6 +87,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BrailleToSpeechRoute: BrailleToSpeechRoute,
   SpeechRoute: SpeechRoute,
 }
 export const routeTree = rootRouteImport

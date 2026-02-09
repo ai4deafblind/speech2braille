@@ -7,7 +7,7 @@ export type ClientOptions = {
 /**
  * BackTranslationRequest
  *
- * Request model for braille-to-text back-translation
+ * Request model for braille-to-text back-translation.
  */
 export type BackTranslationRequest = {
     /**
@@ -27,7 +27,7 @@ export type BackTranslationRequest = {
 /**
  * BackTranslationResponse
  *
- * Response model for back-translation
+ * Response model for back-translation.
  */
 export type BackTranslationResponse = {
     /**
@@ -83,7 +83,7 @@ export type BodyTranscribeSpeechApiTranscribePost = {
 /**
  * BrailleTable
  *
- * Represents a braille translation table
+ * Represents a braille translation table.
  */
 export type BrailleTable = {
     /**
@@ -113,6 +113,50 @@ export type BrailleTable = {
 };
 
 /**
+ * BrailleToSpeechRequest
+ *
+ * Request model for braille-to-speech synthesis.
+ */
+export type BrailleToSpeechRequest = {
+    /**
+     * Braille
+     *
+     * Braille text to convert to speech
+     */
+    braille: string;
+    /**
+     * Table
+     *
+     * Braille table filename for back-translation
+     */
+    table: string;
+    /**
+     * Voice Id
+     *
+     * Voice model ID (uses default if not specified)
+     */
+    voice_id?: string | null;
+    /**
+     * Length Scale
+     *
+     * Speech speed override (1.0 = normal)
+     */
+    length_scale?: number | null;
+    /**
+     * Noise Scale
+     *
+     * Audio variation override
+     */
+    noise_scale?: number | null;
+    /**
+     * Noise W
+     *
+     * Phoneme duration variation override
+     */
+    noise_w?: number | null;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -125,7 +169,7 @@ export type HttpValidationError = {
 /**
  * HealthResponse
  *
- * Health check response
+ * Health check response.
  */
 export type HealthResponse = {
     /**
@@ -152,12 +196,20 @@ export type HealthResponse = {
      * Asr Device
      */
     asr_device?: string | null;
+    /**
+     * Tts Status
+     */
+    tts_status?: string | null;
+    /**
+     * Tts Voices
+     */
+    tts_voices?: Array<string> | null;
 };
 
 /**
  * SegmentTimestamp
  *
- * Segment-level information with word timestamps
+ * Segment-level information with word timestamps.
  */
 export type SegmentTimestamp = {
     /**
@@ -207,7 +259,7 @@ export type SegmentTimestamp = {
 /**
  * SpeechToBrailleResponse
  *
- * Response for combined pipeline
+ * Response for combined speech-to-text-to-braille pipeline.
  */
 export type SpeechToBrailleResponse = {
     /**
@@ -257,7 +309,7 @@ export type SpeechToBrailleResponse = {
 /**
  * TranscriptionResponse
  *
- * Response model for speech transcription
+ * Response model for speech transcription.
  */
 export type TranscriptionResponse = {
     /**
@@ -295,7 +347,7 @@ export type TranscriptionResponse = {
 /**
  * TranslationRequest
  *
- * Request model for text-to-braille translation
+ * Request model for text-to-braille translation.
  */
 export type TranslationRequest = {
     /**
@@ -315,7 +367,7 @@ export type TranslationRequest = {
 /**
  * TranslationResponse
  *
- * Response model for braille translation
+ * Response model for braille translation.
  */
 export type TranslationResponse = {
     /**
@@ -363,9 +415,35 @@ export type ValidationError = {
 };
 
 /**
+ * VoiceInfo
+ *
+ * Information about an available TTS voice.
+ */
+export type VoiceInfo = {
+    /**
+     * Voice Id
+     *
+     * Voice model identifier
+     */
+    voice_id: string;
+    /**
+     * Language
+     *
+     * Language code (e.g., en_US)
+     */
+    language: string;
+    /**
+     * Quality
+     *
+     * Voice quality level (e.g., medium)
+     */
+    quality: string;
+};
+
+/**
  * WordTimestamp
  *
- * Word-level timestamp information
+ * Word-level timestamp information.
  */
 export type WordTimestamp = {
     /**
@@ -497,11 +575,13 @@ export type TestTranslationApiTestTranslationGetResponse = TestTranslationApiTes
 export type TranscribeSpeechApiTranscribePostData = {
     body: BodyTranscribeSpeechApiTranscribePost;
     path?: never;
-    query?: {
+    query: {
         /**
          * Language
+         *
+         * Language code (e.g., 'en', 'es') - required
          */
-        language?: string | null;
+        language: string;
         /**
          * Task
          */
@@ -535,15 +615,17 @@ export type TranscribeSpeechApiTranscribePostResponse = TranscribeSpeechApiTrans
 export type SpeechToBrailleApiSpeechToBraillePostData = {
     body: BodySpeechToBrailleApiSpeechToBraillePost;
     path?: never;
-    query?: {
+    query: {
         /**
          * Braille Table
          */
         braille_table?: string;
         /**
          * Language
+         *
+         * Language code (e.g., 'en', 'es') - required
          */
-        language?: string | null;
+        language: string;
         /**
          * Task
          */
@@ -573,3 +655,44 @@ export type SpeechToBrailleApiSpeechToBraillePostResponses = {
 };
 
 export type SpeechToBrailleApiSpeechToBraillePostResponse = SpeechToBrailleApiSpeechToBraillePostResponses[keyof SpeechToBrailleApiSpeechToBraillePostResponses];
+
+export type BrailleToSpeechApiBrailleToSpeechPostData = {
+    body: BrailleToSpeechRequest;
+    path?: never;
+    query?: never;
+    url: '/api/braille-to-speech';
+};
+
+export type BrailleToSpeechApiBrailleToSpeechPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type BrailleToSpeechApiBrailleToSpeechPostError = BrailleToSpeechApiBrailleToSpeechPostErrors[keyof BrailleToSpeechApiBrailleToSpeechPostErrors];
+
+export type BrailleToSpeechApiBrailleToSpeechPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
+export type ListVoicesApiVoicesGetData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/voices';
+};
+
+export type ListVoicesApiVoicesGetResponses = {
+    /**
+     * Response List Voices Api Voices Get
+     *
+     * Successful Response
+     */
+    200: Array<VoiceInfo>;
+};
+
+export type ListVoicesApiVoicesGetResponse = ListVoicesApiVoicesGetResponses[keyof ListVoicesApiVoicesGetResponses];

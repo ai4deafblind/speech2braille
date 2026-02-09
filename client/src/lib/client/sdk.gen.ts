@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostErrors, BackTranslateFromBrailleApiBackTranslatePostResponses, HealthCheckGetData, HealthCheckGetResponses, ListTablesApiTablesGetData, ListTablesApiTablesGetResponses, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostErrors, SpeechToBrailleApiSpeechToBraillePostResponses, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponses, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostErrors, TranscribeSpeechApiTranscribePostResponses, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostErrors, TranslateToBrailleApiTranslatePostResponses } from './types.gen';
+import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostErrors, BackTranslateFromBrailleApiBackTranslatePostResponses, BrailleToSpeechApiBrailleToSpeechPostData, BrailleToSpeechApiBrailleToSpeechPostErrors, BrailleToSpeechApiBrailleToSpeechPostResponses, HealthCheckGetData, HealthCheckGetResponses, ListTablesApiTablesGetData, ListTablesApiTablesGetResponses, ListVoicesApiVoicesGetData, ListVoicesApiVoicesGetResponses, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostErrors, SpeechToBrailleApiSpeechToBraillePostResponses, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponses, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostErrors, TranscribeSpeechApiTranscribePostResponses, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostErrors, TranslateToBrailleApiTranslatePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -21,7 +21,7 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 /**
  * Health Check
  *
- * Health check endpoint with ASR status
+ * Health check endpoint with ASR and TTS status.
  */
 export const healthCheckGet = <ThrowOnError extends boolean = false>(options?: Options<HealthCheckGetData, ThrowOnError>) => (options?.client ?? client).get<HealthCheckGetResponses, unknown, ThrowOnError>({ url: '/', ...options });
 
@@ -78,14 +78,13 @@ export const testTranslationApiTestTranslationGet = <ThrowOnError extends boolea
 /**
  * Transcribe Speech
  *
- * Transcribe speech from an audio file using faster-whisper.
+ * Transcribe speech from an audio file using whisper.cpp.
  *
  * Accepts various audio formats and returns transcribed text.
- * The model auto-detects language if not specified.
  *
  * Args:
  * audio: Audio file upload
- * language: Optional language code (e.g., 'en', 'es')
+ * language: Language code (e.g., 'en', 'es') - required
  * task: 'transcribe' (in original language) or 'translate' (to English)
  * word_timestamps: Include word-level timestamps in response
  */
@@ -102,7 +101,7 @@ export const transcribeSpeechApiTranscribePost = <ThrowOnError extends boolean =
 /**
  * Speech To Braille
  *
- * Complete pipeline: Speech → Text → Braille
+ * Complete pipeline: Speech -> Text -> Braille
  *
  * Transcribes audio and immediately translates to braille.
  * This is the main endpoint for the deafblind communication device.
@@ -110,7 +109,7 @@ export const transcribeSpeechApiTranscribePost = <ThrowOnError extends boolean =
  * Args:
  * audio: Audio file with speech
  * braille_table: Braille table to use (default: English UEB Grade 2)
- * language: Optional speech language code
+ * language: Language code (e.g., 'en', 'es') - required
  * task: 'transcribe' or 'translate'
  * word_timestamps: Include word-level timestamps in response
  */
@@ -123,3 +122,27 @@ export const speechToBrailleApiSpeechToBraillePost = <ThrowOnError extends boole
         ...options.headers
     }
 });
+
+/**
+ * Braille To Speech
+ *
+ * Convert braille text to speech audio.
+ *
+ * Back-translates braille to text, then synthesizes speech.
+ * Returns WAV audio with metadata in custom headers.
+ */
+export const brailleToSpeechApiBrailleToSpeechPost = <ThrowOnError extends boolean = false>(options: Options<BrailleToSpeechApiBrailleToSpeechPostData, ThrowOnError>) => (options.client ?? client).post<BrailleToSpeechApiBrailleToSpeechPostResponses, BrailleToSpeechApiBrailleToSpeechPostErrors, ThrowOnError>({
+    url: '/api/braille-to-speech',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * List Voices
+ *
+ * List available TTS voices.
+ */
+export const listVoicesApiVoicesGet = <ThrowOnError extends boolean = false>(options?: Options<ListVoicesApiVoicesGetData, ThrowOnError>) => (options?.client ?? client).get<ListVoicesApiVoicesGetResponses, unknown, ThrowOnError>({ url: '/api/voices', ...options });

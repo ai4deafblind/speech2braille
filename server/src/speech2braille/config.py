@@ -87,6 +87,24 @@ class CORSConfig(BaseSettings):
     allow_headers: list[str] = Field(default=["*"], description="Allowed HTTP headers")
 
 
+class TTSConfig(BaseSettings):
+    """TTS (Text-to-Speech) configuration for piper."""
+
+    model_config = SettingsConfigDict(env_prefix="S2B_TTS_")
+
+    voice_model_dir: str = Field(
+        default="models/piper/voices", description="Directory containing piper voice .onnx files"
+    )
+    default_voice_id: str = Field(default="en_US-amy-medium", description="Default voice model ID")
+    length_scale: float = Field(default=1.0, description="Speech speed (1.0 = normal, 2.0 = half speed)")
+    noise_scale: float = Field(default=0.667, description="Audio variation (higher = more variability)")
+    noise_w: float = Field(default=0.8, description="Phoneme duration variation")
+    normalize_audio: bool = Field(default=True, description="Scale audio to full dynamic range")
+    sample_rate: int = Field(default=22050, description="Audio sample rate in Hz")
+    channels: int = Field(default=1, description="Number of audio channels")
+    sentence_silence: float = Field(default=0.2, description="Silence between sentences in seconds")
+
+
 class Settings(BaseSettings):
     """Main application settings."""
 
@@ -102,6 +120,7 @@ class Settings(BaseSettings):
     braille: BrailleConfig = Field(default_factory=BrailleConfig)
     vad: VADConfig = Field(default_factory=VADConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
+    tts: TTSConfig = Field(default_factory=TTSConfig)
 
     # Application metadata
     app_title: str = Field(default="Brailler API", description="Application title")
