@@ -1,8 +1,9 @@
 """Braille translation service using liblouis."""
 
 import logging
+import sys
 
-import louis
+from liblouis_bridge import louis
 
 from speech2braille.config import BrailleConfig
 
@@ -14,6 +15,23 @@ class BrailleService:
 
     def __init__(self, config: BrailleConfig) -> None:
         self.config = config
+        self._verify_louis_installation()
+
+    def _verify_louis_installation(self) -> None:
+        """Verify that liblouis is properly installed and accessible."""
+        try:
+            version = louis.version()
+            logger.info(f"liblouis version {version} loaded successfully")
+        except Exception as e:
+            if sys.platform == "darwin":
+                raise RuntimeError(
+                    f"Failed to load liblouis: {e}\n"
+                    "On macOS, ensure:\n"
+                    "1. brew install liblouis\n"
+                    "2. The louis package is in src/liblouis_bridge/\n"
+                    "3. DYLD_LIBRARY_PATH includes /opt/homebrew/lib if needed"
+                ) from e
+            raise
 
     @property
     def default_table(self) -> str:
