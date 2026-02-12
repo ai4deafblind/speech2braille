@@ -32,6 +32,13 @@ export const Route = createRootRoute({
             >
               Speech to Braille
             </Link>
+            <Link
+              to="/braille-to-speech"
+              className="px-4 py-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors [&.active]:bg-slate-300 dark:[&.active]:bg-slate-600"
+              activeProps={{ className: 'bg-slate-300 dark:bg-slate-600' }}
+            >
+              Braille to Speech
+            </Link>
           </nav>
         </header>
 

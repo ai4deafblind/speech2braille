@@ -9,6 +9,7 @@ from speech2braille.config import Settings
 from speech2braille.services.asr_service import ASRService
 from speech2braille.services.braille_service import BrailleService
 from speech2braille.services.table_service import TableService
+from speech2braille.services.tts_service import TTSService
 from speech2braille.services.vad_service import VADService
 
 
@@ -44,9 +45,15 @@ def get_vad_service(settings: Annotated[Settings, Depends(get_settings)]) -> VAD
     return VADService(settings.vad)
 
 
+def get_tts_service(settings: Annotated[Settings, Depends(get_settings)]) -> TTSService:
+    """Get the TTS service instance."""
+    return TTSService(settings.tts)
+
+
 # Type aliases for use in route dependencies
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 ASRServiceDep = Annotated[ASRService, Depends(get_asr_service)]
 BrailleServiceDep = Annotated[BrailleService, Depends(get_braille_service)]
 TableServiceDep = Annotated[TableService, Depends(get_table_service)]
+TTSServiceDep = Annotated[TTSService, Depends(get_tts_service)]
 VADServiceDep = Annotated[VADService, Depends(get_vad_service)]

@@ -20,7 +20,7 @@ export const BackTranslationRequestSchema = {
         'table'
     ],
     title: 'BackTranslationRequest',
-    description: 'Request model for braille-to-text back-translation'
+    description: 'Request model for braille-to-text back-translation.'
 } as const;
 
 export const BackTranslationResponseSchema = {
@@ -54,7 +54,7 @@ export const BackTranslationResponseSchema = {
         'success'
     ],
     title: 'BackTranslationResponse',
-    description: 'Response model for back-translation'
+    description: 'Response model for back-translation.'
 } as const;
 
 export const Body_speech_to_braille_api_speech_to_braille_postSchema = {
@@ -126,7 +126,78 @@ export const BrailleTableSchema = {
         'language'
     ],
     title: 'BrailleTable',
-    description: 'Represents a braille translation table'
+    description: 'Represents a braille translation table.'
+} as const;
+
+export const BrailleToSpeechRequestSchema = {
+    properties: {
+        braille: {
+            type: 'string',
+            minLength: 1,
+            title: 'Braille',
+            description: 'Braille text to convert to speech'
+        },
+        table: {
+            type: 'string',
+            title: 'Table',
+            description: 'Braille table filename for back-translation'
+        },
+        voice_id: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Voice Id',
+            description: 'Voice model ID (uses default if not specified)'
+        },
+        length_scale: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Length Scale',
+            description: 'Speech speed override (1.0 = normal)'
+        },
+        noise_scale: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Noise Scale',
+            description: 'Audio variation override'
+        },
+        noise_w: {
+            anyOf: [
+                {
+                    type: 'number'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Noise W',
+            description: 'Phoneme duration variation override'
+        }
+    },
+    type: 'object',
+    required: [
+        'braille',
+        'table'
+    ],
+    title: 'BrailleToSpeechRequest',
+    description: 'Request model for braille-to-speech synthesis.'
 } as const;
 
 export const HTTPValidationErrorSchema = {
@@ -182,6 +253,31 @@ export const HealthResponseSchema = {
                 }
             ],
             title: 'Asr Device'
+        },
+        tts_status: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Tts Status'
+        },
+        tts_voices: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string'
+                    },
+                    type: 'array'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Tts Voices'
         }
     },
     type: 'object',
@@ -192,7 +288,7 @@ export const HealthResponseSchema = {
         'asr_status'
     ],
     title: 'HealthResponse',
-    description: 'Health check response'
+    description: 'Health check response.'
 } as const;
 
 export const SegmentTimestampSchema = {
@@ -253,7 +349,7 @@ export const SegmentTimestampSchema = {
         'no_speech_prob'
     ],
     title: 'SegmentTimestamp',
-    description: 'Segment-level information with word timestamps'
+    description: 'Segment-level information with word timestamps.'
 } as const;
 
 export const SpeechToBrailleResponseSchema = {
@@ -326,7 +422,7 @@ export const SpeechToBrailleResponseSchema = {
         'success'
     ],
     title: 'SpeechToBrailleResponse',
-    description: 'Response for combined pipeline'
+    description: 'Response for combined speech-to-text-to-braille pipeline.'
 } as const;
 
 export const TranscriptionResponseSchema = {
@@ -387,7 +483,7 @@ export const TranscriptionResponseSchema = {
         'success'
     ],
     title: 'TranscriptionResponse',
-    description: 'Response model for speech transcription'
+    description: 'Response model for speech transcription.'
 } as const;
 
 export const TranslationRequestSchema = {
@@ -410,7 +506,7 @@ export const TranslationRequestSchema = {
         'table'
     ],
     title: 'TranslationRequest',
-    description: 'Request model for text-to-braille translation'
+    description: 'Request model for text-to-braille translation.'
 } as const;
 
 export const TranslationResponseSchema = {
@@ -444,7 +540,7 @@ export const TranslationResponseSchema = {
         'success'
     ],
     title: 'TranslationResponse',
-    description: 'Response model for braille translation'
+    description: 'Response model for braille translation.'
 } as const;
 
 export const ValidationErrorSchema = {
@@ -481,6 +577,34 @@ export const ValidationErrorSchema = {
     title: 'ValidationError'
 } as const;
 
+export const VoiceInfoSchema = {
+    properties: {
+        voice_id: {
+            type: 'string',
+            title: 'Voice Id',
+            description: 'Voice model identifier'
+        },
+        language: {
+            type: 'string',
+            title: 'Language',
+            description: 'Language code (e.g., en_US)'
+        },
+        quality: {
+            type: 'string',
+            title: 'Quality',
+            description: 'Voice quality level (e.g., medium)'
+        }
+    },
+    type: 'object',
+    required: [
+        'voice_id',
+        'language',
+        'quality'
+    ],
+    title: 'VoiceInfo',
+    description: 'Information about an available TTS voice.'
+} as const;
+
 export const WordTimestampSchema = {
     properties: {
         word: {
@@ -512,5 +636,5 @@ export const WordTimestampSchema = {
         'probability'
     ],
     title: 'WordTimestamp',
-    description: 'Word-level timestamp information'
+    description: 'Word-level timestamp information.'
 } as const;

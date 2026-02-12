@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { backTranslateFromBrailleApiBackTranslatePost, healthCheckGet, listTablesApiTablesGet, type Options, speechToBrailleApiSpeechToBraillePost, testTranslationApiTestTranslationGet, transcribeSpeechApiTranscribePost, translateToBrailleApiTranslatePost } from '../sdk.gen';
-import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostError, BackTranslateFromBrailleApiBackTranslatePostResponse, HealthCheckGetData, HealthCheckGetResponse, ListTablesApiTablesGetData, ListTablesApiTablesGetResponse, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostError, SpeechToBrailleApiSpeechToBraillePostResponse, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponse, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostError, TranscribeSpeechApiTranscribePostResponse, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostError, TranslateToBrailleApiTranslatePostResponse } from '../types.gen';
+import { backTranslateFromBrailleApiBackTranslatePost, brailleToSpeechApiBrailleToSpeechPost, healthCheckGet, listTablesApiTablesGet, listVoicesApiVoicesGet, type Options, speechToBrailleApiSpeechToBraillePost, testTranslationApiTestTranslationGet, transcribeSpeechApiTranscribePost, translateToBrailleApiTranslatePost } from '../sdk.gen';
+import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostError, BackTranslateFromBrailleApiBackTranslatePostResponse, BrailleToSpeechApiBrailleToSpeechPostData, BrailleToSpeechApiBrailleToSpeechPostError, HealthCheckGetData, HealthCheckGetResponse, ListTablesApiTablesGetData, ListTablesApiTablesGetResponse, ListVoicesApiVoicesGetData, ListVoicesApiVoicesGetResponse, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostError, SpeechToBrailleApiSpeechToBraillePostResponse, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponse, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostError, TranscribeSpeechApiTranscribePostResponse, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostError, TranslateToBrailleApiTranslatePostResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -44,7 +44,7 @@ export const healthCheckGetQueryKey = (options?: Options<HealthCheckGetData>) =>
 /**
  * Health Check
  *
- * Health check endpoint with ASR status
+ * Health check endpoint with ASR and TTS status.
  */
 export const healthCheckGetOptions = (options?: Options<HealthCheckGetData>) => queryOptions<HealthCheckGetResponse, DefaultError, HealthCheckGetResponse, ReturnType<typeof healthCheckGetQueryKey>>({
     queryFn: async ({ queryKey, signal }) => {
@@ -148,14 +148,13 @@ export const testTranslationApiTestTranslationGetOptions = (options?: Options<Te
 /**
  * Transcribe Speech
  *
- * Transcribe speech from an audio file using faster-whisper.
+ * Transcribe speech from an audio file using whisper.cpp.
  *
  * Accepts various audio formats and returns transcribed text.
- * The model auto-detects language if not specified.
  *
  * Args:
  * audio: Audio file upload
- * language: Optional language code (e.g., 'en', 'es')
+ * language: Language code (e.g., 'en', 'es') - required
  * task: 'transcribe' (in original language) or 'translate' (to English)
  * word_timestamps: Include word-level timestamps in response
  */
@@ -176,7 +175,7 @@ export const transcribeSpeechApiTranscribePostMutation = (options?: Partial<Opti
 /**
  * Speech To Braille
  *
- * Complete pipeline: Speech → Text → Braille
+ * Complete pipeline: Speech -> Text -> Braille
  *
  * Transcribes audio and immediately translates to braille.
  * This is the main endpoint for the deafblind communication device.
@@ -184,7 +183,7 @@ export const transcribeSpeechApiTranscribePostMutation = (options?: Partial<Opti
  * Args:
  * audio: Audio file with speech
  * braille_table: Braille table to use (default: English UEB Grade 2)
- * language: Optional speech language code
+ * language: Language code (e.g., 'en', 'es') - required
  * task: 'transcribe' or 'translate'
  * word_timestamps: Include word-level timestamps in response
  */
@@ -201,3 +200,45 @@ export const speechToBrailleApiSpeechToBraillePostMutation = (options?: Partial<
     };
     return mutationOptions;
 };
+
+/**
+ * Braille To Speech
+ *
+ * Convert braille text to speech audio.
+ *
+ * Back-translates braille to text, then synthesizes speech.
+ * Returns WAV audio with metadata in custom headers.
+ */
+export const brailleToSpeechApiBrailleToSpeechPostMutation = (options?: Partial<Options<BrailleToSpeechApiBrailleToSpeechPostData>>): UseMutationOptions<unknown, BrailleToSpeechApiBrailleToSpeechPostError, Options<BrailleToSpeechApiBrailleToSpeechPostData>> => {
+    const mutationOptions: UseMutationOptions<unknown, BrailleToSpeechApiBrailleToSpeechPostError, Options<BrailleToSpeechApiBrailleToSpeechPostData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await brailleToSpeechApiBrailleToSpeechPost({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const listVoicesApiVoicesGetQueryKey = (options?: Options<ListVoicesApiVoicesGetData>) => createQueryKey('listVoicesApiVoicesGet', options);
+
+/**
+ * List Voices
+ *
+ * List available TTS voices.
+ */
+export const listVoicesApiVoicesGetOptions = (options?: Options<ListVoicesApiVoicesGetData>) => queryOptions<ListVoicesApiVoicesGetResponse, DefaultError, ListVoicesApiVoicesGetResponse, ReturnType<typeof listVoicesApiVoicesGetQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await listVoicesApiVoicesGet({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: listVoicesApiVoicesGetQueryKey(options)
+});

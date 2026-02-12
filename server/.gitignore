@@ -7,3 +7,5 @@ htmlcov
 .cache
 .venv
 .env
+models/piper/voices/*.onnx
+models/piper/voices/*.onnx.json
