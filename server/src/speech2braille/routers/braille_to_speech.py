@@ -37,6 +37,8 @@ async def braille_to_speech(request: Request, body: BrailleToSpeechRequest) -> R
             length_scale=body.length_scale,
             noise_scale=body.noise_scale,
             noise_w=body.noise_w,
+            volume=body.volume,
+            normalize_audio=body.normalize_audio,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

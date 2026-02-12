@@ -16,6 +16,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Loader2, Languages, Volume2 } from 'lucide-react'
+import { BrailleToSpeechSettings } from './BrailleToSpeechSettings'
+import { PresetSelector } from './PresetSelector'
+import type { TTSSettings } from './BrailleToSpeechSettings'
+import type { TTSPreset } from './PresetSelector'
 
 interface VoiceInfo {
   voice_id: string
@@ -35,10 +39,29 @@ export function BrailleToSpeech() {
   const [error, setError] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  // TTS Settings state
+  const [settings, setSettings] = useState<TTSSettings>(() => {
+    const saved = localStorage.getItem('speech2braille_tts_settings')
+    return saved ? JSON.parse(saved) : {
+      length_scale: 1.0,
+      volume: 1.0,
+      noise_scale: 0.667,
+      noise_w: 0.8,
+      normalize_audio: true,
+    }
+  })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [selectedPreset, setSelectedPreset] = useState<TTSPreset>('natural')
+
   // Persist selected table
   useEffect(() => {
     localStorage.setItem('speech2braille_table', selectedTable)
   }, [selectedTable])
+
+  // Persist settings
+  useEffect(() => {
+    localStorage.setItem('speech2braille_tts_settings', JSON.stringify(settings))
+  }, [settings])
 
   // Cleanup blob URL on unmount or re-synthesis
   useEffect(() => {
@@ -90,6 +113,7 @@ export function BrailleToSpeech() {
           braille: brailleInput,
           table: selectedTable,
           voice_id: selectedVoice || undefined,
+          ...settings,
         }),
       })
 
@@ -287,6 +311,28 @@ export function BrailleToSpeech() {
           )}
         </CardContent>
       </Card>
+
+      {/* Presets */}
+      <PresetSelector
+        selected={selectedPreset}
+        onChange={(preset, newSettings) => {
+          setSelectedPreset(preset)
+          if (newSettings && Object.keys(newSettings).length > 0) {
+            setSettings(newSettings)
+          }
+        }}
+      />
+
+      {/* Speech Settings */}
+      <BrailleToSpeechSettings
+        settings={settings}
+        onChange={(newSettings) => {
+          setSettings(newSettings)
+          setSelectedPreset(null) // Reset to Custom when manually changed
+        }}
+        showAdvanced={showAdvanced}
+        onToggleAdvanced={() => setShowAdvanced(!showAdvanced)}
+      />
 
       {/* Info Card */}
       <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">

@@ -102,7 +102,7 @@ class TTSConfig(BaseSettings):
     normalize_audio: bool = Field(default=True, description="Scale audio to full dynamic range")
     sample_rate: int = Field(default=22050, description="Audio sample rate in Hz")
     channels: int = Field(default=1, description="Number of audio channels")
-    sentence_silence: float = Field(default=0.2, description="Silence between sentences in seconds")
+    volume: float = Field(default=1.0, ge=0.0, le=2.0, description="Volume multiplier (0.0=silent, 1.0=normal, 2.0=double)")
 
 
 class Settings(BaseSettings):

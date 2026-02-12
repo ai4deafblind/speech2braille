@@ -6,6 +6,7 @@ import wave
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import numpy as np
 from piper import PiperVoice, SynthesisConfig
 
 from speech2braille.config import TTSConfig
@@ -127,6 +128,8 @@ class TTSService:
         length_scale: float | None = None,
         noise_scale: float | None = None,
         noise_w: float | None = None,
+        volume: float | None = None,
+        normalize_audio: bool | None = None,
     ) -> bytes:
         """Synthesize text to WAV audio bytes.
 
@@ -136,6 +139,8 @@ class TTSService:
             length_scale: Speech speed override.
             noise_scale: Audio variation override.
             noise_w: Phoneme duration variation override.
+            volume: Volume multiplier (0.0=silent, 1.0=normal, 2.0=double).
+            normalize_audio: Normalize audio to consistent volume.
 
         Returns:
             WAV audio bytes.
@@ -162,12 +167,26 @@ class TTSService:
             length_scale=length_scale if length_scale is not None else self.tts_config.length_scale,
             noise_scale=noise_scale if noise_scale is not None else self.tts_config.noise_scale,
             noise_w_scale=noise_w if noise_w is not None else self.tts_config.noise_w,
-            normalize_audio=self.tts_config.normalize_audio,
+            normalize_audio=normalize_audio if normalize_audio is not None else self.tts_config.normalize_audio,
         )
 
         buf = io.BytesIO()
         with wave.open(buf, "wb") as wav_file:
             voice.synthesize_wav(text, wav_file, syn_config=syn_config)
+
+        # Apply volume adjustment
+        effective_volume = volume if volume is not None else self.tts_config.volume
+        if effective_volume != 1.0:
+            buf.seek(0)
+            with wave.open(buf, "rb") as wav_read:
+                params = wav_read.getparams()
+                audio_array = np.frombuffer(wav_read.readframes(params.nframes), dtype=np.int16)
+                audio_array = np.clip(audio_array * effective_volume, -32768, 32767).astype(np.int16)
+
+            buf = io.BytesIO()
+            with wave.open(buf, "wb") as wav_write:
+                wav_write.setparams(params)
+                wav_write.writeframes(audio_array.tobytes())
 
         return buf.getvalue()
 
