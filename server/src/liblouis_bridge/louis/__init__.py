@@ -133,7 +133,29 @@ else:
             "On macOS: brew install liblouis\n"
             "On Linux: apt install liblouis-dev or dnf install liblouis-devel"
         )
-    del _os, _liblouis_names, _liblouis_paths, _liblouis_loaded, _name, _path, _full_path, _ld_library_path, _homebrew_lib
+    # Clean up temporary variables that are always defined
+    del _os, _liblouis_names, _liblouis_paths, _liblouis_loaded
+    # Conditionally clean up variables that may not have been defined
+    try:
+        del _homebrew_lib
+    except NameError:
+        pass
+    try:
+        del _ld_library_path
+    except NameError:
+        pass
+    try:
+        del _name
+    except NameError:
+        pass
+    try:
+        del _path
+    except NameError:
+        pass
+    try:
+        del _full_path
+    except NameError:
+        pass
 _endianness = "be" if byteorder == "big" else "le"
 
 # { Module Configuration
