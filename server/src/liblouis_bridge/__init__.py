@@ -1,29 +1,25 @@
-"""Liblouis bridge for cross-platform compatibility."""
+"""Liblouis bridge for cross-platform compatibility.
+
+All platforms use the bundled ctypes bindings in liblouis_bridge.louis.
+The C shared library (liblouis) must be installed separately per OS.
+"""
 
 import sys
-import os
 
-# On Linux, prefer system louis (python3-louis) over bundled copy
-# On macOS, use bundled copy with Homebrew's liblouis
-if sys.platform.startswith("linux"):
-    # Add system dist-packages to path if needed for python3-louis
-    if "/usr/lib/python3/dist-packages" not in sys.path:
-        sys.path.insert(0, "/usr/lib/python3/dist-packages")
-    try:
-        import louis
-    except ImportError as e:
-        raise ImportError(
-            "liblouis Python bindings not found. "
-            "On Linux: apt install python3-louis or dnf install python3-louis"
-        ) from e
-else:
-    # macOS: Use local bundled copy (requires brew install liblouis)
-    try:
-        from liblouis_bridge import louis
-    except ImportError as e:
-        raise ImportError(
-            "liblouis Python bindings not found. "
-            "On macOS: brew install liblouis (louis package included in src/liblouis_bridge/)"
-        ) from e
+try:
+    from liblouis_bridge import louis
+except ImportError as e:
+    if sys.platform == "darwin":
+        hint = "On macOS: brew install liblouis"
+    elif sys.platform == "win32":
+        hint = (
+            "On Windows: download liblouis from GitHub releases "
+            "(https://github.com/liblouis/liblouis/releases) "
+            "and set LIBLOUIS_DIR to the install path, "
+            "or install via MSYS2: pacman -S mingw-w64-x86_64-liblouis"
+        )
+    else:
+        hint = "On Linux: sudo apt install liblouis-dev liblouis-data"
+    raise ImportError(f"liblouis not found. {hint}") from e
 
 __all__ = ["louis"]

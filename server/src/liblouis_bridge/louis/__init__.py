@@ -80,82 +80,95 @@ except ImportError:  # Unix/Cygwin
     _loader, _functype = cdll, CFUNCTYPE
 _is_windows = platform == "win32"
 
-# Load liblouis with platform-specific library paths
-if _is_windows:
-    liblouis = _loader["liblouis.20.dll"]
-else:
-    # Try loading with various library names and paths
+
+
+def _load_liblouis():
+    """Load the liblouis shared library with platform-specific search paths."""
     import os as _os
-    _liblouis_loaded = False
-    _liblouis_names = ["liblouis.so.20", "liblouis.so", "liblouis.20.dylib", "liblouis.dylib"]
-    _liblouis_paths = []
 
-    # Add Homebrew library path on macOS
+    if _is_windows:
+        # Add DLL search directories for Windows
+        _win_paths = []
+
+        # LIBLOUIS_DIR env var (recommended for Windows)
+        _env_dir = environ.get("LIBLOUIS_DIR")
+        if _env_dir:
+            _win_paths.append(_env_dir)
+
+        # Common install locations
+        _program_files = environ.get("PROGRAMFILES", r"C:\Program Files")
+        _win_paths.append(_os.path.join(_program_files, "liblouis", "bin"))
+        _win_paths.append(r"C:\msys64\mingw64\bin")
+
+        for _p in _win_paths:
+            if _os.path.isdir(_p):
+                _os.add_dll_directory(_p)
+
+        # Try versioned then unversioned DLL names
+        for _name in ("liblouis.20.dll", "liblouis.dll"):
+            try:
+                return _loader[_name]
+            except (OSError, AttributeError):
+                pass
+
+        raise ImportError(
+            "liblouis DLL not found.\n"
+            "On Windows: download from https://github.com/liblouis/liblouis/releases\n"
+            "  and set LIBLOUIS_DIR to the install path,\n"
+            "  or install via MSYS2: pacman -S mingw-w64-x86_64-liblouis"
+        )
+
+    # Unix (macOS / Linux)
+    _lib_names = []
+    _search_paths = []
+
     if platform == "darwin":
-        _homebrew_lib = "/opt/homebrew/lib"
-        if _os.path.isdir(_homebrew_lib):
-            _liblouis_paths.append(_homebrew_lib)
+        _lib_names = ["liblouis.20.dylib", "liblouis.dylib"]
+        _search_paths = ["/opt/homebrew/lib", "/usr/local/lib"]
+    else:
+        _lib_names = ["liblouis.so.20", "liblouis.so"]
+        _search_paths = [
+            "/usr/lib",
+            "/usr/lib/x86_64-linux-gnu",
+            "/usr/lib/aarch64-linux-gnu",
+            "/usr/local/lib",
+        ]
 
-    # Add paths from DYLD_LIBRARY_PATH or LD_LIBRARY_PATH
-    _ld_library_path = environ.get("DYLD_LIBRARY_PATH") or environ.get("LD_LIBRARY_PATH", "")
-    if _ld_library_path:
-        _liblouis_paths.extend(_ld_library_path.split(":"))
+    # Also check DYLD_LIBRARY_PATH / LD_LIBRARY_PATH
+    _env_ld = environ.get("DYLD_LIBRARY_PATH") or environ.get("LD_LIBRARY_PATH", "")
+    if _env_ld:
+        _search_paths.extend(_env_ld.split(":"))
 
-    # Try loading the library
-    for _name in _liblouis_names:
+    # Try default loader search first
+    for _name in _lib_names:
         try:
-            liblouis = _loader[_name]
-            _liblouis_loaded = True
-            break
+            return _loader[_name]
         except (OSError, AttributeError):
             pass
 
-    # If not found in default search paths, try with full paths
-    if not _liblouis_loaded:
-        for _path in _liblouis_paths:
-            for _name in _liblouis_names:
-                try:
-                    _full_path = _os.path.join(_path, _name)
-                    if _os.path.isfile(_full_path):
-                        liblouis = _loader[_full_path]
-                        _liblouis_loaded = True
-                        break
-                except (OSError, AttributeError):
-                    pass
-            if _liblouis_loaded:
-                break
+    # Try with explicit paths
+    for _path in _search_paths:
+        for _name in _lib_names:
+            _full = _os.path.join(_path, _name)
+            try:
+                if _os.path.isfile(_full):
+                    return _loader[_full]
+            except (OSError, AttributeError):
+                pass
 
-    # If still not found, raise an informative error
-    if not _liblouis_loaded:
-        raise ImportError(
-            f"liblouis shared library not found. Tried: {_liblouis_names}\n"
-            f"Additional paths searched: {_liblouis_paths}\n"
-            "On macOS: brew install liblouis\n"
-            "On Linux: apt install liblouis-dev or dnf install liblouis-devel"
-        )
-    # Clean up temporary variables that are always defined
-    del _os, _liblouis_names, _liblouis_paths, _liblouis_loaded
-    # Conditionally clean up variables that may not have been defined
-    try:
-        del _homebrew_lib
-    except NameError:
-        pass
-    try:
-        del _ld_library_path
-    except NameError:
-        pass
-    try:
-        del _name
-    except NameError:
-        pass
-    try:
-        del _path
-    except NameError:
-        pass
-    try:
-        del _full_path
-    except NameError:
-        pass
+    if platform == "darwin":
+        _hint = "On macOS: brew install liblouis"
+    else:
+        _hint = "On Linux: sudo apt install liblouis-dev or dnf install liblouis-devel"
+    raise ImportError(
+        f"liblouis shared library not found. Tried: {_lib_names}\n"
+        f"Paths searched: {_search_paths}\n"
+        f"{_hint}"
+    )
+
+
+liblouis = _load_liblouis()
+del _load_liblouis
 _endianness = "be" if byteorder == "big" else "le"
 
 # { Module Configuration

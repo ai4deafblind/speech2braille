@@ -87,14 +87,14 @@ class TTSService:
         try:
             if not model_dir.exists():
                 logger.warning(f"Voice model directory does not exist: {model_dir}")
-                logger.warning("Run: bash server/scripts/download-voices.sh")
+                logger.warning("Run: uv run python scripts/download_voices.py")
                 self.state.loading = False
                 return
 
             onnx_files = sorted(model_dir.glob("*.onnx"))
             if not onnx_files:
                 logger.warning(f"No .onnx voice files found in {model_dir}")
-                logger.warning("Run: bash server/scripts/download-voices.sh")
+                logger.warning("Run: uv run python scripts/download_voices.py")
                 self.state.loading = False
                 return
 

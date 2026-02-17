@@ -4,7 +4,6 @@ import logging
 import sys
 
 from liblouis_bridge import louis
-
 from speech2braille.config import BrailleConfig
 
 logger = logging.getLogger(__name__)
@@ -24,14 +23,26 @@ class BrailleService:
             logger.info(f"liblouis version {version} loaded successfully")
         except Exception as e:
             if sys.platform == "darwin":
-                raise RuntimeError(
-                    f"Failed to load liblouis: {e}\n"
+                hint = (
                     "On macOS, ensure:\n"
                     "1. brew install liblouis\n"
                     "2. The louis package is in src/liblouis_bridge/\n"
                     "3. DYLD_LIBRARY_PATH includes /opt/homebrew/lib if needed"
-                ) from e
-            raise
+                )
+            elif sys.platform == "win32":
+                hint = (
+                    "On Windows, ensure:\n"
+                    "1. Download liblouis from https://github.com/liblouis/liblouis/releases\n"
+                    "2. Set LIBLOUIS_DIR to the install path\n"
+                    "   Or install via MSYS2: pacman -S mingw-w64-x86_64-liblouis"
+                )
+            else:
+                hint = (
+                    "On Linux, ensure:\n"
+                    "1. sudo apt install liblouis-dev liblouis-data\n"
+                    "   Or: sudo dnf install liblouis-devel liblouis-utils"
+                )
+            raise RuntimeError(f"Failed to load liblouis: {e}\n{hint}") from e
 
     @property
     def default_table(self) -> str:

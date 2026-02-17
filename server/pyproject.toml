@@ -28,9 +28,11 @@ build-backend = "hatchling.build"
 packages = ["src/speech2braille", "src/liblouis_bridge"]
 
 # Note on liblouis:
-# - macOS: louis Python package (pure ctypes) is included in src/liblouis_bridge/
-#   Requires Homebrew's liblouis C library: brew install liblouis
-# - Linux: Requires python3-louis system package (apt install python3-louis)
+# All platforms use the bundled ctypes bindings in src/liblouis_bridge/louis/.
+# The liblouis C shared library must be installed separately:
+#   macOS: brew install liblouis
+#   Linux: sudo apt install liblouis-dev liblouis-data
+#   Windows: download from GitHub releases or install via MSYS2
 
 [tool.ruff]
 target-version = "py312"

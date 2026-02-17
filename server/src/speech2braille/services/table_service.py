@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sys
 from pathlib import Path
 
 from speech2braille.config import BrailleConfig
@@ -27,14 +28,21 @@ class TableService:
                 directories.append(path)
 
         # Also check user local path
-        user_local = Path.home() / ".local/share/liblouis/tables"
+        if sys.platform == "win32":
+            appdata = os.environ.get("APPDATA")
+            if appdata:
+                user_local = Path(appdata) / "liblouis" / "tables"
+            else:
+                user_local = Path.home() / "AppData" / "Roaming" / "liblouis" / "tables"
+        else:
+            user_local = Path.home() / ".local/share/liblouis/tables"
         if user_local.exists() and user_local.is_dir():
             directories.append(user_local)
 
         # Also check LOUIS_TABLEPATH environment variable
         env_path = os.environ.get("LOUIS_TABLEPATH")
         if env_path:
-            for path_str in env_path.split(":"):
+            for path_str in env_path.split(os.pathsep):
                 path = Path(path_str)
                 if path.exists() and path.is_dir() and path not in directories:
                     directories.append(path)

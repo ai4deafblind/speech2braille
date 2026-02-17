@@ -1,7 +1,33 @@
 """Configuration management using Pydantic Settings."""
 
+import os
+import sys
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _default_table_directories() -> list[str]:
+    """Return platform-appropriate liblouis table directories."""
+    if sys.platform == "darwin":
+        return [
+            "/opt/homebrew/share/liblouis/tables",
+            "/usr/local/share/liblouis/tables",
+        ]
+    if sys.platform == "win32":
+        dirs = []
+        liblouis_dir = os.environ.get("LIBLOUIS_DIR")
+        if liblouis_dir:
+            dirs.append(os.path.join(liblouis_dir, "share", "liblouis", "tables"))
+        program_files = os.environ.get("PROGRAMFILES", r"C:\Program Files")
+        dirs.append(os.path.join(program_files, "liblouis", "share", "liblouis", "tables"))
+        dirs.append(r"C:\msys64\mingw64\share\liblouis\tables")
+        return dirs
+    # Linux
+    return [
+        "/usr/share/liblouis/tables",
+        "/usr/local/share/liblouis/tables",
+    ]
 
 
 class ASRConfig(BaseSettings):
@@ -50,11 +76,7 @@ class BrailleConfig(BaseSettings):
 
     default_table: str = Field(default="en-ueb-g2.ctb", description="Default braille table")
     table_directories: list[str] = Field(
-        default=[
-            "/usr/share/liblouis/tables",
-            "/usr/local/share/liblouis/tables",
-            "/opt/homebrew/share/liblouis/tables",
-        ],
+        default_factory=_default_table_directories,
         description="Directories to search for braille tables",
     )
 
@@ -102,7 +124,9 @@ class TTSConfig(BaseSettings):
     normalize_audio: bool = Field(default=True, description="Scale audio to full dynamic range")
     sample_rate: int = Field(default=22050, description="Audio sample rate in Hz")
     channels: int = Field(default=1, description="Number of audio channels")
-    volume: float = Field(default=1.0, ge=0.0, le=2.0, description="Volume multiplier (0.0=silent, 1.0=normal, 2.0=double)")
+    volume: float = Field(
+        default=1.0, ge=0.0, le=2.0, description="Volume multiplier (0.0=silent, 1.0=normal, 2.0=double)"
+    )
 
 
 class Settings(BaseSettings):
