@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SpeechRouteImport } from './routes/speech'
+import { Route as OcrRouteImport } from './routes/ocr'
 import { Route as BrailleToSpeechRouteImport } from './routes/braille-to-speech'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SpeechRoute = SpeechRouteImport.update({
   id: '/speech',
   path: '/speech',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OcrRoute = OcrRouteImport.update({
+  id: '/ocr',
+  path: '/ocr',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrailleToSpeechRoute = BrailleToSpeechRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/braille-to-speech': typeof BrailleToSpeechRoute
+  '/ocr': typeof OcrRoute
   '/speech': typeof SpeechRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/braille-to-speech': typeof BrailleToSpeechRoute
+  '/ocr': typeof OcrRoute
   '/speech': typeof SpeechRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/braille-to-speech': typeof BrailleToSpeechRoute
+  '/ocr': typeof OcrRoute
   '/speech': typeof SpeechRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/braille-to-speech' | '/speech'
+  fullPaths: '/' | '/braille-to-speech' | '/ocr' | '/speech'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/braille-to-speech' | '/speech'
-  id: '__root__' | '/' | '/braille-to-speech' | '/speech'
+  to: '/' | '/braille-to-speech' | '/ocr' | '/speech'
+  id: '__root__' | '/' | '/braille-to-speech' | '/ocr' | '/speech'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrailleToSpeechRoute: typeof BrailleToSpeechRoute
+  OcrRoute: typeof OcrRoute
   SpeechRoute: typeof SpeechRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/speech'
       fullPath: '/speech'
       preLoaderRoute: typeof SpeechRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ocr': {
+      id: '/ocr'
+      path: '/ocr'
+      fullPath: '/ocr'
+      preLoaderRoute: typeof OcrRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/braille-to-speech': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrailleToSpeechRoute: BrailleToSpeechRoute,
+  OcrRoute: OcrRoute,
   SpeechRoute: SpeechRoute,
 }
 export const routeTree = rootRouteImport

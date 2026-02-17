@@ -2,7 +2,7 @@
 
 import { type Client, formDataBodySerializer, type Options as Options2, type TDataShape } from './client';
 import { client } from './client.gen';
-import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostErrors, BackTranslateFromBrailleApiBackTranslatePostResponses, BrailleToSpeechApiBrailleToSpeechPostData, BrailleToSpeechApiBrailleToSpeechPostErrors, BrailleToSpeechApiBrailleToSpeechPostResponses, HealthCheckGetData, HealthCheckGetResponses, ListTablesApiTablesGetData, ListTablesApiTablesGetResponses, ListVoicesApiVoicesGetData, ListVoicesApiVoicesGetResponses, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostErrors, SpeechToBrailleApiSpeechToBraillePostResponses, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponses, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostErrors, TranscribeSpeechApiTranscribePostResponses, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostErrors, TranslateToBrailleApiTranslatePostResponses } from './types.gen';
+import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostErrors, BackTranslateFromBrailleApiBackTranslatePostResponses, BrailleToSpeechApiBrailleToSpeechPostData, BrailleToSpeechApiBrailleToSpeechPostErrors, BrailleToSpeechApiBrailleToSpeechPostResponses, HealthCheckGetData, HealthCheckGetResponses, ListTablesApiTablesGetData, ListTablesApiTablesGetResponses, ListVoicesApiVoicesGetData, ListVoicesApiVoicesGetResponses, OcrRecognizeApiOcrPostData, OcrRecognizeApiOcrPostErrors, OcrRecognizeApiOcrPostResponses, OcrToBrailleApiOcrToBraillePostData, OcrToBrailleApiOcrToBraillePostErrors, OcrToBrailleApiOcrToBraillePostResponses, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostErrors, SpeechToBrailleApiSpeechToBraillePostResponses, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponses, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostErrors, TranscribeSpeechApiTranscribePostResponses, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostErrors, TranslateToBrailleApiTranslatePostResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<TData, ThrowOnError> & {
     /**
@@ -146,3 +146,37 @@ export const brailleToSpeechApiBrailleToSpeechPost = <ThrowOnError extends boole
  * List available TTS voices.
  */
 export const listVoicesApiVoicesGet = <ThrowOnError extends boolean = false>(options?: Options<ListVoicesApiVoicesGetData, ThrowOnError>) => (options?.client ?? client).get<ListVoicesApiVoicesGetResponses, unknown, ThrowOnError>({ url: '/api/voices', ...options });
+
+/**
+ * Ocr Recognize
+ *
+ * Recognize text from an image using RapidOCR PP-OCRv5.
+ *
+ * Returns recognized text lines with confidence scores and bounding boxes.
+ */
+export const ocrRecognizeApiOcrPost = <ThrowOnError extends boolean = false>(options: Options<OcrRecognizeApiOcrPostData, ThrowOnError>) => (options.client ?? client).post<OcrRecognizeApiOcrPostResponses, OcrRecognizeApiOcrPostErrors, ThrowOnError>({
+    ...formDataBodySerializer,
+    url: '/api/ocr',
+    ...options,
+    headers: {
+        'Content-Type': null,
+        ...options.headers
+    }
+});
+
+/**
+ * Ocr To Braille
+ *
+ * Full pipeline: Image -> OCR -> Text -> Braille.
+ *
+ * Recognizes text from an image and translates it to braille.
+ */
+export const ocrToBrailleApiOcrToBraillePost = <ThrowOnError extends boolean = false>(options: Options<OcrToBrailleApiOcrToBraillePostData, ThrowOnError>) => (options.client ?? client).post<OcrToBrailleApiOcrToBraillePostResponses, OcrToBrailleApiOcrToBraillePostErrors, ThrowOnError>({
+    ...formDataBodySerializer,
+    url: '/api/ocr-to-braille',
+    ...options,
+    headers: {
+        'Content-Type': null,
+        ...options.headers
+    }
+});

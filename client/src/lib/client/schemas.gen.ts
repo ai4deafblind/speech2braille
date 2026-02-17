@@ -57,6 +57,38 @@ export const BackTranslationResponseSchema = {
     description: 'Response model for back-translation.'
 } as const;
 
+export const Body_ocr_recognize_api_ocr_postSchema = {
+    properties: {
+        image: {
+            type: 'string',
+            format: 'binary',
+            title: 'Image',
+            description: 'Image file (PNG, JPG, BMP, TIFF, WebP)'
+        }
+    },
+    type: 'object',
+    required: [
+        'image'
+    ],
+    title: 'Body_ocr_recognize_api_ocr_post'
+} as const;
+
+export const Body_ocr_to_braille_api_ocr_to_braille_postSchema = {
+    properties: {
+        image: {
+            type: 'string',
+            format: 'binary',
+            title: 'Image',
+            description: 'Image file (PNG, JPG, BMP, TIFF, WebP)'
+        }
+    },
+    type: 'object',
+    required: [
+        'image'
+    ],
+    title: 'Body_ocr_to_braille_api_ocr_to_braille_post'
+} as const;
+
 export const Body_speech_to_braille_api_speech_to_braille_postSchema = {
     properties: {
         audio: {
@@ -157,38 +189,81 @@ export const BrailleToSpeechRequestSchema = {
         length_scale: {
             anyOf: [
                 {
-                    type: 'number'
+                    type: 'number',
+                    maximum: 2,
+                    minimum: 0.5
                 },
                 {
                     type: 'null'
                 }
             ],
             title: 'Length Scale',
-            description: 'Speech speed override (1.0 = normal)'
+            description: 'Speech speed (0.5=half, 1.0=normal, 2.0=double)'
         },
         noise_scale: {
             anyOf: [
                 {
-                    type: 'number'
+                    type: 'number',
+                    maximum: 1.5,
+                    minimum: 0
                 },
                 {
                     type: 'null'
                 }
             ],
             title: 'Noise Scale',
-            description: 'Audio variation override'
+            description: 'Speech variation (lower=robotic, higher=expressive)'
         },
         noise_w: {
             anyOf: [
                 {
-                    type: 'number'
+                    type: 'number',
+                    maximum: 1.5,
+                    minimum: 0
                 },
                 {
                     type: 'null'
                 }
             ],
             title: 'Noise W',
-            description: 'Phoneme duration variation override'
+            description: 'Phoneme duration variation'
+        },
+        volume: {
+            anyOf: [
+                {
+                    type: 'number',
+                    maximum: 2,
+                    minimum: 0
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Volume',
+            description: 'Volume (0.0=mute, 1.0=normal, 2.0=double)'
+        },
+        normalize_audio: {
+            anyOf: [
+                {
+                    type: 'boolean'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Normalize Audio',
+            description: 'Normalize audio to consistent volume'
+        },
+        preset: {
+            anyOf: [
+                {
+                    $ref: '#/components/schemas/TTSPreset'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            description: 'Use preset configuration'
         }
     },
     type: 'object',
@@ -278,6 +353,31 @@ export const HealthResponseSchema = {
                 }
             ],
             title: 'Tts Voices'
+        },
+        ocr_status: {
+            anyOf: [
+                {
+                    type: 'string'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ocr Status'
+        },
+        ocr_languages: {
+            anyOf: [
+                {
+                    items: {
+                        type: 'string'
+                    },
+                    type: 'array'
+                },
+                {
+                    type: 'null'
+                }
+            ],
+            title: 'Ocr Languages'
         }
     },
     type: 'object',
@@ -289,6 +389,113 @@ export const HealthResponseSchema = {
     ],
     title: 'HealthResponse',
     description: 'Health check response.'
+} as const;
+
+export const OCRLineSchema = {
+    properties: {
+        text: {
+            type: 'string',
+            title: 'Text'
+        },
+        confidence: {
+            type: 'number',
+            title: 'Confidence'
+        },
+        bbox: {
+            items: {
+                items: {
+                    type: 'integer'
+                },
+                type: 'array'
+            },
+            type: 'array',
+            title: 'Bbox'
+        }
+    },
+    type: 'object',
+    required: [
+        'text',
+        'confidence',
+        'bbox'
+    ],
+    title: 'OCRLine',
+    description: 'A single recognized text line from OCR.'
+} as const;
+
+export const OCRResponseSchema = {
+    properties: {
+        lines: {
+            items: {
+                $ref: '#/components/schemas/OCRLine'
+            },
+            type: 'array',
+            title: 'Lines'
+        },
+        full_text: {
+            type: 'string',
+            title: 'Full Text'
+        },
+        language: {
+            type: 'string',
+            title: 'Language'
+        },
+        success: {
+            type: 'boolean',
+            title: 'Success'
+        }
+    },
+    type: 'object',
+    required: [
+        'lines',
+        'full_text',
+        'language',
+        'success'
+    ],
+    title: 'OCRResponse',
+    description: 'OCR-only response.'
+} as const;
+
+export const OCRToBrailleResponseSchema = {
+    properties: {
+        lines: {
+            items: {
+                $ref: '#/components/schemas/OCRLine'
+            },
+            type: 'array',
+            title: 'Lines'
+        },
+        full_text: {
+            type: 'string',
+            title: 'Full Text'
+        },
+        braille: {
+            type: 'string',
+            title: 'Braille'
+        },
+        language: {
+            type: 'string',
+            title: 'Language'
+        },
+        table_used: {
+            type: 'string',
+            title: 'Table Used'
+        },
+        success: {
+            type: 'boolean',
+            title: 'Success'
+        }
+    },
+    type: 'object',
+    required: [
+        'lines',
+        'full_text',
+        'braille',
+        'language',
+        'table_used',
+        'success'
+    ],
+    title: 'OCRToBrailleResponse',
+    description: 'Full OCR-to-Braille pipeline response.'
 } as const;
 
 export const SegmentTimestampSchema = {
@@ -423,6 +630,19 @@ export const SpeechToBrailleResponseSchema = {
     ],
     title: 'SpeechToBrailleResponse',
     description: 'Response for combined speech-to-text-to-braille pipeline.'
+} as const;
+
+export const TTSPresetSchema = {
+    type: 'string',
+    enum: [
+        'natural',
+        'clear',
+        'fast',
+        'slow',
+        'loud'
+    ],
+    title: 'TTSPreset',
+    description: 'Pre-configured TTS settings for common use cases.'
 } as const;
 
 export const TranscriptionResponseSchema = {

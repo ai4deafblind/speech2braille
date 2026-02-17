@@ -57,6 +57,30 @@ export type BackTranslationResponse = {
 };
 
 /**
+ * Body_ocr_recognize_api_ocr_post
+ */
+export type BodyOcrRecognizeApiOcrPost = {
+    /**
+     * Image
+     *
+     * Image file (PNG, JPG, BMP, TIFF, WebP)
+     */
+    image: Blob | File;
+};
+
+/**
+ * Body_ocr_to_braille_api_ocr_to_braille_post
+ */
+export type BodyOcrToBrailleApiOcrToBraillePost = {
+    /**
+     * Image
+     *
+     * Image file (PNG, JPG, BMP, TIFF, WebP)
+     */
+    image: Blob | File;
+};
+
+/**
  * Body_speech_to_braille_api_speech_to_braille_post
  */
 export type BodySpeechToBrailleApiSpeechToBraillePost = {
@@ -139,21 +163,37 @@ export type BrailleToSpeechRequest = {
     /**
      * Length Scale
      *
-     * Speech speed override (1.0 = normal)
+     * Speech speed (0.5=half, 1.0=normal, 2.0=double)
      */
     length_scale?: number | null;
     /**
      * Noise Scale
      *
-     * Audio variation override
+     * Speech variation (lower=robotic, higher=expressive)
      */
     noise_scale?: number | null;
     /**
      * Noise W
      *
-     * Phoneme duration variation override
+     * Phoneme duration variation
      */
     noise_w?: number | null;
+    /**
+     * Volume
+     *
+     * Volume (0.0=mute, 1.0=normal, 2.0=double)
+     */
+    volume?: number | null;
+    /**
+     * Normalize Audio
+     *
+     * Normalize audio to consistent volume
+     */
+    normalize_audio?: boolean | null;
+    /**
+     * Use preset configuration
+     */
+    preset?: TtsPreset | null;
 };
 
 /**
@@ -204,6 +244,90 @@ export type HealthResponse = {
      * Tts Voices
      */
     tts_voices?: Array<string> | null;
+    /**
+     * Ocr Status
+     */
+    ocr_status?: string | null;
+    /**
+     * Ocr Languages
+     */
+    ocr_languages?: Array<string> | null;
+};
+
+/**
+ * OCRLine
+ *
+ * A single recognized text line from OCR.
+ */
+export type OcrLine = {
+    /**
+     * Text
+     */
+    text: string;
+    /**
+     * Confidence
+     */
+    confidence: number;
+    /**
+     * Bbox
+     */
+    bbox: Array<Array<number>>;
+};
+
+/**
+ * OCRResponse
+ *
+ * OCR-only response.
+ */
+export type OcrResponse = {
+    /**
+     * Lines
+     */
+    lines: Array<OcrLine>;
+    /**
+     * Full Text
+     */
+    full_text: string;
+    /**
+     * Language
+     */
+    language: string;
+    /**
+     * Success
+     */
+    success: boolean;
+};
+
+/**
+ * OCRToBrailleResponse
+ *
+ * Full OCR-to-Braille pipeline response.
+ */
+export type OcrToBrailleResponse = {
+    /**
+     * Lines
+     */
+    lines: Array<OcrLine>;
+    /**
+     * Full Text
+     */
+    full_text: string;
+    /**
+     * Braille
+     */
+    braille: string;
+    /**
+     * Language
+     */
+    language: string;
+    /**
+     * Table Used
+     */
+    table_used: string;
+    /**
+     * Success
+     */
+    success: boolean;
 };
 
 /**
@@ -305,6 +429,26 @@ export type SpeechToBrailleResponse = {
      */
     success: boolean;
 };
+
+/**
+ * TTSPreset
+ *
+ * Pre-configured TTS settings for common use cases.
+ */
+export const TtsPreset = {
+    NATURAL: 'natural',
+    CLEAR: 'clear',
+    FAST: 'fast',
+    SLOW: 'slow',
+    LOUD: 'loud'
+} as const;
+
+/**
+ * TTSPreset
+ *
+ * Pre-configured TTS settings for common use cases.
+ */
+export type TtsPreset = typeof TtsPreset[keyof typeof TtsPreset];
 
 /**
  * TranscriptionResponse
@@ -696,3 +840,73 @@ export type ListVoicesApiVoicesGetResponses = {
 };
 
 export type ListVoicesApiVoicesGetResponse = ListVoicesApiVoicesGetResponses[keyof ListVoicesApiVoicesGetResponses];
+
+export type OcrRecognizeApiOcrPostData = {
+    body: BodyOcrRecognizeApiOcrPost;
+    path?: never;
+    query?: {
+        /**
+         * Language
+         *
+         * OCR language code (e.g., 'en', 'fr', 'ch')
+         */
+        language?: string | null;
+    };
+    url: '/api/ocr';
+};
+
+export type OcrRecognizeApiOcrPostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OcrRecognizeApiOcrPostError = OcrRecognizeApiOcrPostErrors[keyof OcrRecognizeApiOcrPostErrors];
+
+export type OcrRecognizeApiOcrPostResponses = {
+    /**
+     * Successful Response
+     */
+    200: OcrResponse;
+};
+
+export type OcrRecognizeApiOcrPostResponse = OcrRecognizeApiOcrPostResponses[keyof OcrRecognizeApiOcrPostResponses];
+
+export type OcrToBrailleApiOcrToBraillePostData = {
+    body: BodyOcrToBrailleApiOcrToBraillePost;
+    path?: never;
+    query?: {
+        /**
+         * Language
+         *
+         * OCR language code (e.g., 'en', 'fr', 'ch')
+         */
+        language?: string | null;
+        /**
+         * Braille Table
+         *
+         * Braille translation table
+         */
+        braille_table?: string;
+    };
+    url: '/api/ocr-to-braille';
+};
+
+export type OcrToBrailleApiOcrToBraillePostErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type OcrToBrailleApiOcrToBraillePostError = OcrToBrailleApiOcrToBraillePostErrors[keyof OcrToBrailleApiOcrToBraillePostErrors];
+
+export type OcrToBrailleApiOcrToBraillePostResponses = {
+    /**
+     * Successful Response
+     */
+    200: OcrToBrailleResponse;
+};
+
+export type OcrToBrailleApiOcrToBraillePostResponse = OcrToBrailleApiOcrToBraillePostResponses[keyof OcrToBrailleApiOcrToBraillePostResponses];

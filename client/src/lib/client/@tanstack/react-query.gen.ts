@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { backTranslateFromBrailleApiBackTranslatePost, brailleToSpeechApiBrailleToSpeechPost, healthCheckGet, listTablesApiTablesGet, listVoicesApiVoicesGet, type Options, speechToBrailleApiSpeechToBraillePost, testTranslationApiTestTranslationGet, transcribeSpeechApiTranscribePost, translateToBrailleApiTranslatePost } from '../sdk.gen';
-import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostError, BackTranslateFromBrailleApiBackTranslatePostResponse, BrailleToSpeechApiBrailleToSpeechPostData, BrailleToSpeechApiBrailleToSpeechPostError, HealthCheckGetData, HealthCheckGetResponse, ListTablesApiTablesGetData, ListTablesApiTablesGetResponse, ListVoicesApiVoicesGetData, ListVoicesApiVoicesGetResponse, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostError, SpeechToBrailleApiSpeechToBraillePostResponse, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponse, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostError, TranscribeSpeechApiTranscribePostResponse, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostError, TranslateToBrailleApiTranslatePostResponse } from '../types.gen';
+import { backTranslateFromBrailleApiBackTranslatePost, brailleToSpeechApiBrailleToSpeechPost, healthCheckGet, listTablesApiTablesGet, listVoicesApiVoicesGet, ocrRecognizeApiOcrPost, ocrToBrailleApiOcrToBraillePost, type Options, speechToBrailleApiSpeechToBraillePost, testTranslationApiTestTranslationGet, transcribeSpeechApiTranscribePost, translateToBrailleApiTranslatePost } from '../sdk.gen';
+import type { BackTranslateFromBrailleApiBackTranslatePostData, BackTranslateFromBrailleApiBackTranslatePostError, BackTranslateFromBrailleApiBackTranslatePostResponse, BrailleToSpeechApiBrailleToSpeechPostData, BrailleToSpeechApiBrailleToSpeechPostError, HealthCheckGetData, HealthCheckGetResponse, ListTablesApiTablesGetData, ListTablesApiTablesGetResponse, ListVoicesApiVoicesGetData, ListVoicesApiVoicesGetResponse, OcrRecognizeApiOcrPostData, OcrRecognizeApiOcrPostError, OcrRecognizeApiOcrPostResponse, OcrToBrailleApiOcrToBraillePostData, OcrToBrailleApiOcrToBraillePostError, OcrToBrailleApiOcrToBraillePostResponse, SpeechToBrailleApiSpeechToBraillePostData, SpeechToBrailleApiSpeechToBraillePostError, SpeechToBrailleApiSpeechToBraillePostResponse, TestTranslationApiTestTranslationGetData, TestTranslationApiTestTranslationGetResponse, TranscribeSpeechApiTranscribePostData, TranscribeSpeechApiTranscribePostError, TranscribeSpeechApiTranscribePostResponse, TranslateToBrailleApiTranslatePostData, TranslateToBrailleApiTranslatePostError, TranslateToBrailleApiTranslatePostResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -242,3 +242,45 @@ export const listVoicesApiVoicesGetOptions = (options?: Options<ListVoicesApiVoi
     },
     queryKey: listVoicesApiVoicesGetQueryKey(options)
 });
+
+/**
+ * Ocr Recognize
+ *
+ * Recognize text from an image using RapidOCR PP-OCRv5.
+ *
+ * Returns recognized text lines with confidence scores and bounding boxes.
+ */
+export const ocrRecognizeApiOcrPostMutation = (options?: Partial<Options<OcrRecognizeApiOcrPostData>>): UseMutationOptions<OcrRecognizeApiOcrPostResponse, OcrRecognizeApiOcrPostError, Options<OcrRecognizeApiOcrPostData>> => {
+    const mutationOptions: UseMutationOptions<OcrRecognizeApiOcrPostResponse, OcrRecognizeApiOcrPostError, Options<OcrRecognizeApiOcrPostData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await ocrRecognizeApiOcrPost({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Ocr To Braille
+ *
+ * Full pipeline: Image -> OCR -> Text -> Braille.
+ *
+ * Recognizes text from an image and translates it to braille.
+ */
+export const ocrToBrailleApiOcrToBraillePostMutation = (options?: Partial<Options<OcrToBrailleApiOcrToBraillePostData>>): UseMutationOptions<OcrToBrailleApiOcrToBraillePostResponse, OcrToBrailleApiOcrToBraillePostError, Options<OcrToBrailleApiOcrToBraillePostData>> => {
+    const mutationOptions: UseMutationOptions<OcrToBrailleApiOcrToBraillePostResponse, OcrToBrailleApiOcrToBraillePostError, Options<OcrToBrailleApiOcrToBraillePostData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await ocrToBrailleApiOcrToBraillePost({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};

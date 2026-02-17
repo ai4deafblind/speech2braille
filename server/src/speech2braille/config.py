@@ -98,6 +98,19 @@ class VADConfig(BaseSettings):
     frame_size_samples: int = Field(default=512, description="Frame size (16ms at 16kHz)")
 
 
+class OCRConfig(BaseSettings):
+    """OCR (Optical Character Recognition) configuration for RapidOCR."""
+
+    model_config = SettingsConfigDict(env_prefix="S2B_OCR_")
+
+    default_language: str = Field(default="en", description="Default OCR language")
+    max_image_size: int = Field(default=10_485_760, description="Max upload size in bytes (default 10MB)")
+    min_confidence: float = Field(default=0.5, description="Filter low-quality detections (0-1)")
+    max_side_len: int = Field(default=1920, description="Auto-resize large images (critical for RPi5)")
+    cpu_threads: int = Field(default=4, description="Number of CPU threads for inference")
+    model_type: str = Field(default="mobile", description="Model type: 'mobile' for RPi5, 'server' for desktop")
+
+
 class CORSConfig(BaseSettings):
     """CORS configuration."""
 
@@ -145,6 +158,7 @@ class Settings(BaseSettings):
     vad: VADConfig = Field(default_factory=VADConfig)
     cors: CORSConfig = Field(default_factory=CORSConfig)
     tts: TTSConfig = Field(default_factory=TTSConfig)
+    ocr: OCRConfig = Field(default_factory=OCRConfig)
 
     # Application metadata
     app_title: str = Field(default="Brailler API", description="Application title")

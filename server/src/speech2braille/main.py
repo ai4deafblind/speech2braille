@@ -11,12 +11,14 @@ from speech2braille.config import Settings
 from speech2braille.routers import (
     braille_to_speech_router,
     health_router,
+    ocr_router,
     speech_router,
     tables_router,
     translation_router,
 )
 from speech2braille.services.asr_service import ASRService
 from speech2braille.services.braille_service import BrailleService
+from speech2braille.services.ocr_service import OCRService
 from speech2braille.services.table_service import TableService
 from speech2braille.services.tts_service import TTSService
 from speech2braille.services.vad_service import VADService
@@ -44,6 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     braille_service = BrailleService(settings.braille)
     table_service = TableService(settings.braille)
     tts_service = TTSService(settings.tts)
+    ocr_service = OCRService(settings.ocr)
     vad_service = VADService(settings.vad)
 
     @asynccontextmanager
@@ -56,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.braille_service = braille_service
         app.state.table_service = table_service
         app.state.tts_service = tts_service
+        app.state.ocr_service = ocr_service
         app.state.vad_service = vad_service
         app.state.settings = settings
 
@@ -63,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         asyncio.create_task(asr_service.load_model())
         asyncio.create_task(vad_service.load_model())
         asyncio.create_task(tts_service.load_model())
+        asyncio.create_task(asyncio.to_thread(ocr_service.load_model_sync))
 
         yield
 
@@ -70,6 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         logger.info("Shutting down Brailler API...")
         asr_service.unload()
         tts_service.unload()
+        ocr_service.unload()
 
     app = FastAPI(
         title=settings.app_title,
@@ -93,6 +99,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(translation_router)
     app.include_router(speech_router)
     app.include_router(braille_to_speech_router)
+    app.include_router(ocr_router)
 
     # WebSocket endpoint
     ws_handler = SpeechToBrailleWebSocket(asr_service, braille_service, vad_service, settings.websocket)

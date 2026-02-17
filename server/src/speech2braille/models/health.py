@@ -14,3 +14,5 @@ class HealthResponse(BaseModel):
     asr_device: str | None = None
     tts_status: str | None = None
     tts_voices: list[str] | None = None
+    ocr_status: str | None = None
+    ocr_languages: list[str] | None = None
